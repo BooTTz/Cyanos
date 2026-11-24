@@ -17,6 +17,7 @@
 | 气质 | 现代、灵动、霓虹感、企业级可信赖 |
 | Logo | 六边形轮廓 + 内部钻石形，白色描边，位于紫→绿渐变圆角方块上 |
 | 站点图标（favicon） | **必须与平台 Logo 一致**：紫→深紫(42%)→绿 `135deg` 渐变圆角方块 + 白色六边形轮廓 + 白色钻石形；禁止使用框架默认图标 |
+| 鼠标光标 | **全站使用绿色发光箭头**（`public/cursor/cursor.png`）：薄荷绿 `#00B090` 箭头 + 青绿柔光、无白边；热区 `(8 6)` 对准尖端；输入框保留系统 `text` I-beam |
 
 **favicon 实现规范**：
 
@@ -28,6 +29,14 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 ```
+
+**自定义光标实现规范**：
+
+- 资源：`public/cursor/cursor.png`（64×64，`@supports` + fallback 到 `auto`/`pointer`）。图形为经典鼠标箭头，尖端左上，纯薄荷绿填充 + 青绿三层高斯柔光，**无白色描边**（白描边只属于浏览器插件的贴纸，非平台光标）。
+- 色值：填充 `#00B090`（对应截图取样，与 `--brand-green-deep` 薄荷绿同色系），柔光 `rgba(0,205,165,0.75)`。
+- 热区：`url(...) 8 6` 对准箭头尖端；不写热区会导致点击位置偏移。
+- 应用范围（`globals.css` 末尾 `@supports` 块）：`html, body` 默认指针 + `button, a, [role=button], .cursor-pointer` 全部替换；**文本输入框/textarea/contenteditable 保留 `text`**，禁止把 I-beam 也替换掉（可用性）。
+- 反模式：不要用白边箭头、不要用系统手型作 fallback 之外的混搭、不要忘记热区坐标。
 
 **文案调性**：中文简洁专业，围绕"企业工作台、统一身份与权限、组织管理、单点登录、经营洞察"等 toB 词汇。避免消费级/游戏化措辞。
 
