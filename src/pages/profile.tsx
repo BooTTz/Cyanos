@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -73,25 +73,6 @@ function OrganizationManager() {
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>("member");
   const [inviteError, setInviteError] = useState("");
   const [inviteDone, setInviteDone] = useState("");
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  // 更多菜单：移入显示、移出隐藏。弹出层渲染在 portal 中，按钮与菜单之间存在间隙，
-  // 因此用短延迟关闭来跨越间隙；鼠标进入菜单时取消关闭，移出菜单后重新计时。
-  const menuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelMenuClose = () => {
-    if (menuCloseTimer.current) {
-      clearTimeout(menuCloseTimer.current);
-      menuCloseTimer.current = null;
-    }
-  };
-  const openMenu = (id: string) => {
-    cancelMenuClose();
-    setMenuOpenId(id);
-  };
-  const scheduleMenuClose = () => {
-    cancelMenuClose();
-    menuCloseTimer.current = setTimeout(() => setMenuOpenId(null), 160);
-  };
-  useEffect(() => cancelMenuClose, []);
   const [leaveTarget, setLeaveTarget] = useState<Workspace | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deletionTarget, setDeletionTarget] = useState<Workspace | null>(null);
@@ -234,7 +215,6 @@ function OrganizationManager() {
     const err = tenantActions.cancelWorkspaceDeletion(workspace.id, user.id);
     if (err) showNotice(err);
     else showNotice("已恢复组织，可正常进入工作台");
-    setMenuOpenId(null);
   };
 
   return (
@@ -279,32 +259,20 @@ function OrganizationManager() {
             const pendingCount = pendingCountOf(workspace.id);
             // 下拉项 id 必须保持稳定：HeroUI 在切换菜单项 id 时会抛错并卸载整棵 React 树。
             const moreMenu = membership.role === "owner" ? (
-              <div
-                className="ml-auto"
-                onMouseEnter={() => openMenu(workspace.id)}
-                onMouseLeave={scheduleMenuClose}
-              >
-                <Dropdown
-                  isOpen={menuOpenId === workspace.id}
-                  onOpenChange={(open) => setMenuOpenId(open ? workspace.id : null)}
-                >
+              <div className="ml-auto">
+                <Dropdown>
                   <Dropdown.Trigger
                     aria-label={`${workspace.name} 更多操作`}
                     className="text-muted hover:bg-default/70 hover:text-foreground flex size-8 cursor-pointer items-center justify-center rounded-lg transition-colors"
                   >
                     <MoreHorizontal className="size-4" />
                   </Dropdown.Trigger>
-                  <Dropdown.Popover
-                    placement="top end"
-                    onMouseEnter={() => openMenu(workspace.id)}
-                    onMouseLeave={scheduleMenuClose}
-                  >
+                  <Dropdown.Popover placement="top end">
                     <Dropdown.Menu aria-label={`${workspace.name} 更多操作`}>
                       <Dropdown.Item
                         id="workspace-deletion"
                         textValue={deleting ? "注销恢复" : "注销组织"}
                         onAction={() => {
-                          setMenuOpenId(null);
                           if (deleting) {
                             restoreWorkspace(workspace);
                           } else {
