@@ -34,6 +34,7 @@ import { PageHeader } from "@/components/ui";
 import { dictActions, useDictionaries } from "@/lib/dict-store";
 import {
   dictStatusLabels,
+  ROOT_ORG_TYPES,
   type DictEntry,
   type DictGroup,
   type DictStatus,
@@ -49,6 +50,7 @@ type EntryFormState = {
   level: number;
   sort: number;
   status: DictStatus;
+  allowRoot: boolean;
 };
 
 type GroupFormState = {
@@ -126,6 +128,9 @@ export default function DictionariesPage() {
   const [topNotice, setTopNotice] = useState("");
 
   const isShownInTop = (entry: DictEntry) => entry.showInTop ?? entry.code !== "company";
+  // 旧快照没有 allowRoot 时，沿用内置「公司/承包商可作为根级」规则，避免升级后下拉突然变化
+  const isRootAllowed = (entry: DictEntry) =>
+    entry.allowRoot ?? ROOT_ORG_TYPES.includes(entry.code as (typeof ROOT_ORG_TYPES)[number]);
   const toggleShowInTop = (entry: DictEntry) => {
     if (isShownInTop(entry)) {
       dictActions.updateEntry(entry.id, { showInTop: false });
@@ -284,6 +289,7 @@ export default function DictionariesPage() {
       level,
       sort,
       status: "enabled",
+      allowRoot: false,
     });
   };
 
@@ -299,6 +305,7 @@ export default function DictionariesPage() {
       level: entry.level,
       sort: entry.sort,
       status: entry.status,
+      allowRoot: isRootAllowed(entry),
     });
   };
 
@@ -330,6 +337,7 @@ export default function DictionariesPage() {
         sort: entryForm.sort,
         status: entryForm.status,
         builtin: false,
+        allowRoot: entryForm.allowRoot,
         createdAt: today(),
       });
       if (entryForm.parentId) {
@@ -351,6 +359,7 @@ export default function DictionariesPage() {
         level: entryForm.level,
         sort: nextSort,
         status: entryForm.status,
+        allowRoot: entryForm.allowRoot,
       });
       // 移动后自动展开新上级，避免节点"消失"造成没生效的错觉
       if (entryForm.parentId) {
@@ -423,6 +432,11 @@ export default function DictionariesPage() {
                   {entry.level > 1 && (
                     <Chip size="sm" variant="soft" color="warning" className="shrink-0">
                       L{entry.level}
+                    </Chip>
+                  )}
+                  {selectedGroup?.code === "ORG_TYPE" && isRootAllowed(entry) && (
+                    <Chip size="sm" variant="soft" color="accent" className="shrink-0">
+                      可根级
                     </Chip>
                   )}
                 </div>
@@ -885,6 +899,28 @@ export default function DictionariesPage() {
                         </Select.Popover>
                       </Select>
                     </Field>
+                    {selectedGroup?.code === "ORG_TYPE" && (
+                      <Field label="可作为根级组织">
+                        <Select
+                          className="w-full"
+                          selectedKey={entryForm?.allowRoot ? "yes" : "no"}
+                          onSelectionChange={(key) =>
+                            setEntryForm((prev) => prev && { ...prev, allowRoot: key === "yes" })
+                          }
+                        >
+                          <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                          </Select.Trigger>
+                          <Select.Popover>
+                            <ListBox aria-label="选择是否可作为根级组织">
+                              <ListBox.Item key="no" id="no" textValue="否">否（仅可作为下级）</ListBox.Item>
+                              <ListBox.Item key="yes" id="yes" textValue="是">是（可作为根级）</ListBox.Item>
+                            </ListBox>
+                          </Select.Popover>
+                        </Select>
+                      </Field>
+                    )}
                   </div>
                   <Field label="上级字典项">
                     <Select

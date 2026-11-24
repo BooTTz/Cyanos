@@ -102,6 +102,7 @@ const dictEntry = (
   builtin = false,
   status: DictStatus = "enabled",
   showInTop = true,
+  allowRoot = false,
 ): DictEntry => ({
   id,
   groupId,
@@ -114,16 +115,17 @@ const dictEntry = (
   status,
   builtin,
   showInTop,
+  allowRoot,
   createdAt: "2024-01-01",
 });
 
 export const initialDictEntries: DictEntry[] = [
   // 组织类别 —— code 与 OrgType 一一对应；内置项禁止删除，避免历史组织数据失去类型
-  dictEntry("DE1001", "DG1000", null, "company", "公司", "集团、分子公司等法人组织", 1, 1, true, "enabled", false),
+  dictEntry("DE1001", "DG1000", null, "company", "公司", "集团、分子公司等法人组织", 1, 1, true, "enabled", false, true),
   dictEntry("DE1002", "DG1000", null, "workshop", "车间", "承担生产制造任务的基层单位", 1, 2, true, "enabled", true),
   dictEntry("DE1003", "DG1000", null, "section", "工段", "车间下属的作业区段或工序单元", 1, 3, true, "enabled", true),
   dictEntry("DE1004", "DG1000", null, "department", "部门", "职能管理与业务支持部门", 1, 4, true, "enabled", true),
-  dictEntry("DE1005", "DG1000", null, "contractor", "承包商", "外部合作与施工单位", 1, 5, true, "enabled", true),
+  dictEntry("DE1005", "DG1000", null, "contractor", "承包商", "外部合作与施工单位", 1, 5, true, "enabled", true, true),
 ];
 
 export const growthData = [

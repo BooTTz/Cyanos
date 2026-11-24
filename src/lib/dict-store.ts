@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { initialDictEntries, initialDictGroups } from "./mock-data";
-import { orgTypeLabels, type DictEntry, type DictGroup, type OrgType } from "./types";
+import { orgTypeLabels, ROOT_ORG_TYPES, type DictEntry, type DictGroup, type OrgType } from "./types";
 
 export interface DictState {
   groups: DictGroup[];
@@ -163,6 +163,25 @@ export function useOrgTypeOptions(): Array<{ value: OrgType; label: string }> {
       value: entry.code as OrgType,
       label: entry.name,
     }));
+  }, [groups, entries]);
+}
+
+/** 根级组织新增下拉的数据源：ORG_TYPE 中启用且勾选「可作为根级」的项；旧快照缺省按内置公司/承包商处理 */
+export function useRootOrgTypeOptions(): Array<{ value: OrgType; label: string }> {
+  const { groups, entries } = useDictionaries();
+  return useMemo(() => {
+    const group = groups.find((g) => g.code === "ORG_TYPE" && g.status === "enabled");
+    if (!group) {
+      return ROOT_ORG_TYPES.map((value) => ({ value, label: orgTypeLabels[value] }));
+    }
+    const items = entries
+      .filter((e) => e.groupId === group.id && e.status === "enabled")
+      .filter((e) => (e.allowRoot ?? ROOT_ORG_TYPES.includes(e.code as OrgType)))
+      .sort((a, b) => a.sort - b.sort);
+    if (items.length === 0) {
+      return ROOT_ORG_TYPES.map((value) => ({ value, label: orgTypeLabels[value] }));
+    }
+    return items.map((entry) => ({ value: entry.code as OrgType, label: entry.name }));
   }, [groups, entries]);
 }
 

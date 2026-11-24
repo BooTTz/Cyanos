@@ -35,11 +35,14 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui";
-import { useOrgTopTypes, useOrgTypeLabels, useOrgTypeOptions } from "@/lib/dict-store";
+import {
+  useOrgTopTypes,
+  useOrgTypeLabels,
+  useOrgTypeOptions,
+  useRootOrgTypeOptions,
+} from "@/lib/dict-store";
 import { initialOrganizations } from "@/lib/mock-data";
 import {
-  CHILD_ORG_TYPES,
-  ROOT_ORG_TYPES,
   orgStatusLabels,
   type Organization,
   type OrgStatus,
@@ -151,6 +154,7 @@ function EditField({
 
 export default function OrganizationsPage() {
   const orgTypeOptions = useOrgTypeOptions();
+  const rootOrgTypeOptions = useRootOrgTypeOptions();
   const orgTypeLabels = useOrgTypeLabels();
   const orgTopTypes = useOrgTopTypes();
   const [orgs, setOrgs] = useState<Organization[]>(initialOrganizations);
@@ -182,17 +186,6 @@ export default function OrganizationsPage() {
   const parent = selected.parentId ? byId.get(selected.parentId) : undefined;
   const meta = getMeta(selected.type);
   const SelectedIcon = meta.icon;
-
-  const counts = useMemo(
-    () => ({
-      all: orgs.length,
-      workshop: orgs.filter((o) => o.type === "workshop").length,
-      section: orgs.filter((o) => o.type === "section").length,
-      department: orgs.filter((o) => o.type === "department").length,
-      contractor: orgs.filter((o) => o.type === "contractor").length,
-    }),
-    [orgs],
-  );
 
   /** 搜索命中节点时保留其祖先，避免子树凭空消失 */
   const visibleIds = useMemo(() => {
@@ -259,12 +252,12 @@ export default function OrganizationsPage() {
   };
 
   const openCreate = (parentOrg: Organization | null) => {
-    const allowed = parentOrg ? CHILD_ORG_TYPES : ROOT_ORG_TYPES;
-    const available = orgTypeOptions.filter((option) => allowed.includes(option.value));
+    // 组织类型完全由「组织类别」字典驱动：下级取全部启用项，根级取字典中标记「可作为根级」的项
+    const available = parentOrg ? orgTypeOptions : rootOrgTypeOptions;
     setCreateParent(parentOrg);
     setCreateIsRoot(!parentOrg);
     setCreateName("");
-    setCreateType(available[0]?.value ?? allowed[0]);
+    setCreateType(available[0]?.value ?? "company");
     setCreateOpen(true);
   };
 
@@ -438,7 +431,7 @@ export default function OrganizationsPage() {
     <div>
       <PageHeader
         title="组织管理"
-        description="维护公司、车间、部门与承包商的组织架构及基础信息。"
+        description="维护组织架构与基础信息，组织类别统一由数据字典维护。"
       />
 
       {/* 概览条 —— 与用户管理保持一致的紧凑统计样式；类型卡由「组织类别」字典的显示开关动态生成 */}
@@ -447,7 +440,7 @@ export default function OrganizationsPage() {
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
       >
         {[
-          { label: "组织总数", value: counts.all, code: "__all__" },
+          { label: "组织总数", value: orgs.length, code: "__all__" },
           ...orgTopTypes.map((t) => ({
             label: t.name,
             value: orgs.filter((o) => o.type === (t.code as OrgType)).length,
@@ -709,7 +702,10 @@ export default function OrganizationsPage() {
                 <div className="space-y-4">
                   <p className="text-muted rounded-lg bg-accent/5 p-3 text-xs leading-relaxed">
                     {createIsRoot ? (
-                      <>将在组织体系<span className="text-foreground font-semibold">顶层</span>新增根级节点，可选类别为公司或承包商。</>
+                      <>
+                        将在组织体系<span className="text-foreground font-semibold">顶层</span>新增根级节点，可选类别由「组织类别」字典决定（
+                        {rootOrgTypeOptions.map((o) => o.label).join("、") || "暂无"}）。
+                      </>
                     ) : (
                       <>
                         将在 <span className="text-foreground font-semibold">{createParent?.name}</span> 下新增下级节点。
@@ -741,15 +737,11 @@ export default function OrganizationsPage() {
                       </Select.Trigger>
                       <Select.Popover>
                         <ListBox aria-label="选择新增组织类型">
-                          {orgTypeOptions
-                            .filter((option) =>
-                              (createIsRoot ? ROOT_ORG_TYPES : CHILD_ORG_TYPES).includes(option.value),
-                            )
-                            .map((option) => (
-                              <ListBox.Item key={option.value} id={option.value} textValue={option.label}>
-                                {option.label}
-                              </ListBox.Item>
-                            ))}
+                          {(createIsRoot ? rootOrgTypeOptions : orgTypeOptions).map((option) => (
+                            <ListBox.Item key={option.value} id={option.value} textValue={option.label}>
+                              {option.label}
+                            </ListBox.Item>
+                          ))}
                         </ListBox>
                       </Select.Popover>
                     </Select>

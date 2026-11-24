@@ -255,11 +255,11 @@
 - **整体布局**：`PageHeader` + 紧凑统计条（第一格固定「组织总数」，其余类型卡由「组织类别」字典的显示开关动态生成，**最多 6 个**；容器 `grid gap-3` + `gridTemplateColumns: repeat(auto-fit, minmax(180px, 1fr))` 自适应列数）+ 两栏工作区 `.org-workspace`（`grid gap-5`，`lg` 起 `grid-template-columns: minmax(300px,340px) minmax(0,1fr)`，`xl` 左栏放宽到 `320–360px`）；两栏各自用 `neon-card org-panel rounded-2xl`，左树右详情。类型卡的数量/名称/顺序取自 `useOrgTopTypes()`；新增类别默认显示，可在字典页用 Pin 开关取消，超限（>6）时拒绝开启并提示。
 - **面板高度绑定视口（不随内容增长）**：`.org-workspace` 在 `lg` 以上设 `height: clamp(520px, calc(100dvh - 300px), 760px)`；`.org-panel` 设 `height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden`（窄屏保留 `min-height: 520px`）；仅内容区 `.org-panel__body` 滚动（`min-height: 0; flex: 1 1 0; overflow-y: auto`）。**所有 flex 祖先必须 `min-height: 0`**，否则树节点/字段增减会把面板和页面一起撑高。小屏（`<lg`）树体额外保留 `max-h-[60vh]`，`lg` 以上由面板接管高度（`lg:max-h-none`）。
 - **左侧组织树**：
-  - 数据源 `initialOrganizations`（`parentId` 组装树），类型共**五类**：公司 / 车间 / 工段 / 部门 / 承包商；名称与顺序由「组织类别」字典决定（见 §5.8）。
+  - 数据源 `initialOrganizations`（`parentId` 组装树）；组织**类型不写死**，由「组织类别」字典决定（预置公司 / 车间 / 工段 / 部门 / 承包商，可随时新增，见 §5.8）。
   - 节点结构：可展开箭头 → 类型方形 tile 图标 → 名称 → 类型 `Chip`（`variant="soft"`），图标与色彩一一对应：公司 `Building2`/accent、车间 `Factory`/success、工段 `Workflow`/warning、部门 `UsersRound`/default、承包商 `HardHat`/default。
   - 选中态：整行 `bg-accent/10`、文字 `text-accent`、左侧 4px 发光竖条；操作按钮（新增下级、更多）平时 `opacity-0`，`group-hover` / 选中 / `focus-within` 时显现。
   - 树支持搜索（名称 / 编码 / 负责人），命中节点时保留其祖先以免子树消失；树区 `table-scroll org-panel__body` 独立滚动，高度随视口面板（见上条），**不再按节点数量撑高**。
-  - **新增分两个入口**（树头部「新增」下拉）：`新增根级组织` 仅可选 **公司 / 承包商**（`ROOT_ORG_TYPES`）；`在「X」下新增` 可选 **公司 / 承包商 / 车间 / 部门 / 工段** 五类（`CHILD_ORG_TYPES`），**不再按父节点类型收窄**。候选项按「组织类别」字典的启用状态与排序过滤（`useOrgTypeOptions`）。**禁止**再引入 `CHILD_TYPES` 这类按父类型写死的约束表。
+  - **新增分两个入口**（树头部「新增」下拉）：选项**全部来自「组织类别」字典，不经过任何硬编码白名单**——`在「X」下新增` 用 `useOrgTypeOptions()` 取全部**启用**项（按 `sort`，含字典新增类别如分厂/工厂，且**不按父节点类型收窄**）；`新增根级组织` 用 `useRootOrgTypeOptions()` 取启用且 `allowRoot=true` 的项（旧快照缺省按公司/承包商兼容）。字典项在编辑弹窗配置「可作为根级组织」，列表显示「可根级」标记。`ROOT_ORG_TYPES` 只作字典不可用时的兜底，`CHILD_ORG_TYPES` 已废弃。**禁止**再用类型常量 `.filter()` 创建下拉，否则新增字典项不会自动可用。
 - **右侧基本信息**：默认**查看态**，用 `InfoField` 网格展示组织名称、组织编码、组织类型、上级组织、负责人、联系电话、所在地址、创建日期、组织状态、组织说明。点击页面右上角「编辑」进入**编辑态**：字段换成 `TextField + InputGroup`，组织类型/状态用 `Select`，底部「取消 / 保存修改」；保存后同步刷新树节点名称与统计，退出编辑态。
 - **树节点操作**：Hover 行上的 `+` 在对应节点下新增（弹窗填名称与类型，自动继承编码前缀并选中新节点）；`MoreHorizontal` 下拉为「编辑名称」「删除组织」。删除需二次确认，会级联删除整个子树并在文案中说明数量；根节点公司不提供删除入口。
 - **禁止**：引入岗位、部门岗位、人员编制字段；在树里用裸文字代替类型图标/标签；把编辑态做成独立页面而不是当前卡片内切换；把组织类型写死在页面常量里而不走字典。
@@ -268,12 +268,12 @@
 
 平台级基础功能，统一维护业务字典项；导航位于「管理」组的角色与权限下方。
 
-- **数据模型**（`src/lib/types.ts`）：`DictGroup`（`id/code/name/description/status/builtin/createdAt`）+ `DictEntry`（`id/groupId/parentId/code/name/description/level/sort/status/builtin/createdAt/showInTop?`）。`parentId` 组成**无限层级**，`level` 为 1 起的深度（**由上级字典派生：`level = parent.level + 1`，表单里只读、不手填**），`sort` 控制同级顺序；`builtin` 项禁止删除，防止内置业务字典被清空。`showInTop` 仅 `ORG_TYPE` 分类有意义，控制是否出现在组织管理页顶部统计卡，缺省时按内置规则（company 不显示、其余显示）兼容旧快照。
+- **数据模型**（`src/lib/types.ts`）：`DictGroup`（`id/code/name/description/status/builtin/createdAt`）+ `DictEntry`（`id/groupId/parentId/code/name/description/level/sort/status/builtin/createdAt/showInTop?`）。`parentId` 组成**无限层级**，`level` 为 1 起的深度（**由上级字典派生：`level = parent.level + 1`，表单里只读、不手填**），`sort` 控制同级顺序；`builtin` 项禁止删除，防止内置业务字典被清空。`showInTop` 仅 `ORG_TYPE` 分类有意义，控制是否出现在组织管理页顶部统计卡，缺省时按内置规则（company 不显示、其余显示）兼容旧快照；`allowRoot` 仅 `ORG_TYPE` 有意义，控制是否出现在根级组织创建下拉，缺省时按内置规则（company / contractor 可）兼容旧快照。
 - **共享数据源**（`src/lib/dict-store.ts`）：localStorage key `cyanos-dictionaries-v2`（版本化：内置默认数据变更时提升版本号，避免旧快照覆盖新默认值）；模块级 `listeners` + `CHANGE_EVENT` 实现同页多组件同步，`storage` 事件实现跨标签页同步。页面组件统一用 `useDictionaries()` 读取、用 `dictActions` 写入，**不要**各自维护字典副本。
 - **页面布局**：`PageHeader`（含「恢复默认」「新增分类」）+ 四格统计（分类数 / 字典项总数 / 已启用 / 已停用）+ 两栏 `.dict-workspace`（左分类 `260–320px`，右字典项树）；复用 §5.7 的视口绑定面板规则，面板类为 `.dict-panel` / `.dict-panel__body`。
 - **分类管理**：列表展示名称、编码、项数；搜索按名称/编码/描述；新增/编辑用 Modal（编码全局唯一）；内置分类只可编辑与启停，不可删除；删除分类级联删除其下全部层级的字典项（二次确认）。
-- **字典项管理**：树形缩进 + 展开收起 + `L{n}` 层级标签；搜索命中时保留祖先链；节点操作含新增子项、编辑、上移/下移、启停、删除（级联子树并二次确认）；内置项编码不可改。表单中「上级字典项」用 `Select`，需排除自身及其子树，防止形成环；**「层级」随上级自动派生、只读**。**编辑必须提交 `parentId`**（新建分支本就有），否则改上级后节点不会真正移动——树位置只认 `parentId`，`level` 只是展示数字。换上级时 `sort` 放到新父节点末尾避免重复。**上移/下移用 `dictActions.reorderSiblings()` 按数组顺序整体重排、sort 规范化为 1..n**，不要只交换两个 sort 值（重复值会失效）。
-- **与组织管理联动**：分类编码 `ORG_TYPE` 为组织类别源。`useOrgTypeOptions()` 只返回该分类中**启用**的项并按 `sort` 排序，决定组织新增下拉与编辑态类型选项；`useOrgTypeLabels()` 决定组织树、详情的类型名称（含字典新增类型，返回 `Record<string,string>`）；`useOrgTopTypes()` 决定顶部统计卡，取启用且 `showInTop` 的项、按 sort 排序、**最多 6 个**。因此**改名、停用、排序、新增类别会实时反映到组织页**。字典页 `ORG_TYPE` 项操作区的 **Pin 按钮**切换 `showInTop`（开启时若已达 6 个则拒绝并提示）。组织页类型图标/色彩用 `getMeta(type)` 带兜底（`META_FALLBACK`），**新增类型（如 plant）不能因 `TYPE_META` 为 undefined 而白屏**。不要绕过字典直接改 `orgTypeLabels` 常量。
+- **字典项管理**：树形缩进 + 展开收起 + `L{n}` 层级标签；搜索命中时保留祖先链；节点操作含新增子项、编辑、上移/下移、启停、删除（级联子树并二次确认）；内置项编码不可改。表单中「上级字典项」用 `Select`，需排除自身及其子树，防止形成环；**「层级」随上级自动派生、只读**。**编辑必须提交 `parentId`**（新建分支本就有），否则改上级后节点不会真正移动——树位置只认 `parentId`，`level` 只是展示数字。换上级时 `sort` 放到新父节点末尾避免重复。**上移/下移用 `dictActions.reorderSiblings()` 按数组顺序整体重排、sort 规范化为 1..n**，不要只交换两个 sort 值（重复值会失效）。`ORG_TYPE` 项的编辑表单另有「可作为根级组织」选项（是/否），对应 `allowRoot` 字段，控制该类别能否用于新建根级组织。
+- **与组织管理联动**：分类编码 `ORG_TYPE` 为组织类别源。`useOrgTypeOptions()` 只返回该分类中**启用**的项并按 `sort` 排序，决定组织新增下拉与编辑态类型选项；`useOrgTypeLabels()` 决定组织树、详情的类型名称（含字典新增类型，返回 `Record<string,string>`）；`useOrgTopTypes()` 决定顶部统计卡，取启用且 `showInTop` 的项、按 sort 排序、**最多 6 个**。`useRootOrgTypeOptions()` 决定根级组织创建下拉（启用 + `allowRoot`，旧快照缺省 company/contractor）。因此**改名、停用、排序、新增类别会实时反映到组织页顶部卡、新增/编辑下拉以及个人中心「创建组织」下拉——新增字典项无需改代码**。字典页 `ORG_TYPE` 项操作区的 **Pin 按钮**切换 `showInTop`（开启时若已达 6 个则拒绝并提示）。组织页类型图标/色彩用 `getMeta(type)` 带兜底（`META_FALLBACK`），**新增类型（如 plant）不能因 `TYPE_META` 为 undefined 而白屏**。不要绕过字典直接改 `orgTypeLabels` 常量。
 - **参考实现**：`src/pages/dictionaries.tsx`、`src/lib/dict-store.ts`；预置字典见 `src/lib/mock-data.ts`。**当前只预置「组织类别」一个内置分类**（公司 / 车间 / 工段 / 部门 / 承包商 5 项），它同时是组织页的真实数据源；其他业务字典暂不预置演示数据，需要时通过页面「新增分类」自行创建。多级层级与排序能力由数据模型支持，不依赖预置示例展示。
 
 ### 5.9 多租户与账号体系（`/login` `/register` `/profile` `/admin`）
@@ -401,7 +401,7 @@
 | `src/pages/organizations.tsx` | 组织管理：组织树 + 基本信息查看/编辑 + 新增/改名/删除（唯一实现处） |
 | `src/pages/dictionaries.tsx` | 数据字典：分类与多级字典项管理（唯一实现处） |
 | `src/pages/admin.tsx` | 超管后台：全账号/组织/成员总览 + 注销申请审批与手动注销账号（仅 `isSuperAdmin`） |
-| `src/lib/dict-store.ts` | 字典共享数据源：localStorage 持久化、跨组件/跨标签同步、`useOrgTypeOptions` / `useOrgTypeLabels` |
+| `src/lib/dict-store.ts` | 字典共享数据源：localStorage 持久化、跨组件/跨标签同步、`useOrgTypeOptions` / `useRootOrgTypeOptions` / `useOrgTypeLabels` / `useOrgTopTypes` |
 | `src/lib/tenant-store.ts` | 多租户数据层：账号/工作空间/成员/邀请/会话/验证码，`useTenantStore` + `tenantActions`（唯一实现处） |
 | `src/provider.tsx` | 认证上下文：基于 tenant-store 的 login/register/logout/switchWorkspace |
 | `api/`（`auth.ts` / `state.ts` / `mutations.ts` / `_lib/`） | Vercel Serverless Functions：认证、快照、写操作，连接 Neon（真后端唯一实现处） |
@@ -453,10 +453,11 @@
 | 收缩 rail 留大片空白 / 主区再加 padding 形成双层间距 | rail `w-[68px]` + `px-1` / `p-1` 贴合 44px tile，主区 `lg:pl-[80px]` 零额外缝隙 |
 | 有侧栏时宽屏用 `mx-auto` 居中内容，侧栏与内容间出现巨大空档 | 有侧栏时 `mr-auto w-full max-w-[1920px]` 左对齐，内容紧贴侧栏右侧铺开；无侧栏时用 `mx-auto max-w-[1680px]` 居中自适应 |
 | 组织树高度随节点数量增长 / 内容增减撑高页面 | `.org-workspace` 视口高度 + `.org-panel__body` 内部滚动，flex 祖先全部 `min-height: 0` |
-| 组织类型写死在页面常量 / 按父节点类型写死可新增类别 | 类型选项与名称走 `useOrgTypeOptions` / `useOrgTypeLabels`；根级仅公司+承包商，下级五类 |
+| 组织类型写死在页面常量 / 用 `CHILD_ORG_TYPES` 等白名单过滤下拉 / 按父节点类型收窄 | 下级下拉直接用 `useOrgTypeOptions`（全部启用项），根级用 `useRootOrgTypeOptions`（`allowRoot`）；名称用 `useOrgTypeLabels`，新增字典项自动可用 |
 | 字典项只能平铺 / 各自维护一份字典副本 | `DictEntry.parentId` 多级树 + `dict-store.ts` 共享数据源与 localStorage 同步 |
 | 编辑字典项漏提交 `parentId` / 层级表单可手填 / 上移下移只交换 sort | 编辑连同 `parentId` 一起提交让节点真正移动；层级由上级派生只读；`reorderSiblings` 整体重排规范化 sort |
 | 组织顶部统计卡写死五类 / 新增字典类别不显示 / 新类型 undefined 白屏 | 顶部卡走 `useOrgTopTypes`（启用 + `showInTop` + 最多 6 个），字典页 Pin 开关控制；`getMeta` 兜底新类型图标色彩 |
+| 新增字典类别后顶部卡出现、创建组织下拉却没有 | 所有组织类型下拉与顶部卡同源字典；下拉禁止再套类型常量 `.filter()`，根级范围用字典项 `allowRoot` 配置 |
 | 用 `scaleX` 或父级百分比做搜索框展开（文字变形 / 动画失效） | `.canvas-search` 的 `focus-within` 直接过渡 `width` 300→600px |
 | hover 用 `transform: translateY(-1px)` 做浮起（鼠标在元素边缘反复进出、跳来跳去） | 改用 box-shadow + border-color 表达浮起，元素几何位置保持不变；`:active` 也不做反向位移 |
 | 搜索条/侧栏无 hover 反馈（悬浮时无边界感） | `.canvas-search:hover` 与 `.sidebar-rail:hover` 补紫色描边 + 柔和光晕，与 `.neon-card` 同一套语言 |

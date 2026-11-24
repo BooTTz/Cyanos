@@ -30,6 +30,8 @@ export interface DictEntry {
   createdAt: string;
   /** 组织类别字典项是否显示在组织管理页顶部统计卡；仅 ORG_TYPE 分类有意义，缺省按内置规则处理 */
   showInTop?: boolean;
+  /** 组织类别字典项是否可作为根级组织类型；仅 ORG_TYPE 有意义，缺省按内置规则（公司/承包商）处理 */
+  allowRoot?: boolean;
 }
 
 /** 组织节点：用 parentId 组装树，不含岗位/部门岗位概念 */
@@ -179,11 +181,8 @@ export const orgTypeLabels: Record<OrgType, string> = {
   contractor: "承包商",
 };
 
-/** 根级组织允许的类型：只有公司与承包商能作为组织体系的起点 */
+/** 字典不可用时的兜底：根级组织默认只有公司与承包商；正常情况由字典项 allowRoot 决定 */
 export const ROOT_ORG_TYPES: OrgType[] = ["company", "contractor"];
-
-/** 新增下级组织可选类型：全部五类，与父节点类型无关 */
-export const CHILD_ORG_TYPES: OrgType[] = ["company", "workshop", "section", "department", "contractor"];
 
 export const dictStatusLabels: Record<DictStatus, string> = {
   enabled: "启用",

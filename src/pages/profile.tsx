@@ -34,7 +34,8 @@ import {
 import { Avatar, Button, Dropdown, InputGroup, Label, Modal, Pagination, Select, ListBox, Switch, Table, Tabs, TextField } from "@heroui/react";
 
 import { PageHeader, UserAvatar } from "@/components/ui";
-import { DELETION_GRACE_DAYS, orgTypeLabels, roleLabels, workspaceRoleLabels, type OrgType, type UserRole, type Workspace, type WorkspaceRole } from "@/lib/types";
+import { DELETION_GRACE_DAYS, roleLabels, workspaceRoleLabels, type OrgType, type UserRole, type Workspace, type WorkspaceRole } from "@/lib/types";
+import { useOrgTypeLabels, useRootOrgTypeOptions } from "@/lib/dict-store";
 import {
   deletionDaysLeft,
   getLastWorkspaceId,
@@ -52,6 +53,9 @@ import { useThemeMode } from "@/lib/use-theme";
 function OrganizationManager() {
   const { user, switchWorkspace } = useAuth();
   const navigate = useNavigate();
+  // 组织类型名称与创建下拉均取「组织类别」字典，新增字典项后无需改代码
+  const orgTypeLabels = useOrgTypeLabels();
+  const rootOrgTypeOptions = useRootOrgTypeOptions();
   const workspaces = useAccountWorkspaces(user?.id ?? null);
   const activeId = user?.workspaceId ?? null;
   const workspaceIds = workspaces.map((w) => w.workspace.id);
@@ -322,7 +326,7 @@ function OrganizationManager() {
                       )}
                     </span>
                     <span className="text-muted mt-1 block truncate text-[11px]">
-                      {workspace.code} · {orgTypeLabels[workspace.type]}
+                      {workspace.code} · {orgTypeLabels[workspace.type] ?? workspace.type}
                     </span>
                     <span className="mt-3 flex flex-wrap items-center gap-1.5">
                       <span className="bg-accent/10 text-accent rounded-md px-2 py-1 text-[10px] font-medium">{membershipsLabel(membership.role)}</span>
@@ -397,12 +401,12 @@ function OrganizationManager() {
                   <Label>组织编码</Label>
                   <InputGroup><InputGroup.Input placeholder="例如：HY-ZZ" /></InputGroup>
                 </TextField>
-                <Select name="type" className="w-full" defaultSelectedKey="company">
+                  <Select name="type" className="w-full" defaultSelectedKey="company">
                   <Label>组织类型</Label>
                   <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                   <Select.Popover><ListBox aria-label="选择组织类型">
-                    {(Object.keys(orgTypeLabels) as OrgType[]).map((t) => (
-                      <ListBox.Item key={t} id={t} textValue={orgTypeLabels[t]}>{orgTypeLabels[t]}</ListBox.Item>
+                    {rootOrgTypeOptions.map((option) => (
+                      <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}</ListBox.Item>
                     ))}
                   </ListBox></Select.Popover>
                 </Select>
