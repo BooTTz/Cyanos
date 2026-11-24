@@ -229,7 +229,7 @@
 
 面向企业安全生产场景的**组织架构**模块，**不包含"部门岗位"及任何岗位相关功能**。
 
-- **整体布局**：`PageHeader` + 五格紧凑统计条（组织总数 / 车间 / 工段 / 部门 / 承包商，`grid-cols-2 sm:grid-cols-3 xl:grid-cols-5`，标签取自组织类别字典）+ 两栏工作区 `.org-workspace`（`grid gap-5`，`lg` 起 `grid-template-columns: minmax(300px,340px) minmax(0,1fr)`，`xl` 左栏放宽到 `320–360px`）；两栏各自用 `neon-card org-panel rounded-2xl`，左树右详情。
+- **整体布局**：`PageHeader` + 紧凑统计条（第一格固定「组织总数」，其余类型卡由「组织类别」字典的显示开关动态生成，**最多 6 个**；容器 `grid gap-3` + `gridTemplateColumns: repeat(auto-fit, minmax(180px, 1fr))` 自适应列数）+ 两栏工作区 `.org-workspace`（`grid gap-5`，`lg` 起 `grid-template-columns: minmax(300px,340px) minmax(0,1fr)`，`xl` 左栏放宽到 `320–360px`）；两栏各自用 `neon-card org-panel rounded-2xl`，左树右详情。类型卡的数量/名称/顺序取自 `useOrgTopTypes()`；新增类别默认显示，可在字典页用 Pin 开关取消，超限（>6）时拒绝开启并提示。
 - **面板高度绑定视口（不随内容增长）**：`.org-workspace` 在 `lg` 以上设 `height: clamp(520px, calc(100dvh - 300px), 760px)`；`.org-panel` 设 `height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden`（窄屏保留 `min-height: 520px`）；仅内容区 `.org-panel__body` 滚动（`min-height: 0; flex: 1 1 0; overflow-y: auto`）。**所有 flex 祖先必须 `min-height: 0`**，否则树节点/字段增减会把面板和页面一起撑高。小屏（`<lg`）树体额外保留 `max-h-[60vh]`，`lg` 以上由面板接管高度（`lg:max-h-none`）。
 - **左侧组织树**：
   - 数据源 `initialOrganizations`（`parentId` 组装树），类型共**五类**：公司 / 车间 / 工段 / 部门 / 承包商；名称与顺序由「组织类别」字典决定（见 §5.8）。
@@ -245,12 +245,12 @@
 
 平台级基础功能，统一维护业务字典项；导航位于「管理」组的角色与权限下方。
 
-- **数据模型**（`src/lib/types.ts`）：`DictGroup`（`id/code/name/description/status/builtin/createdAt`）+ `DictEntry`（`id/groupId/parentId/code/name/description/level/sort/status/builtin/createdAt`）。`parentId` 组成**无限层级**，`level` 为 1 起的深度，`sort` 控制同级顺序；`builtin` 项禁止删除，防止内置业务字典被清空。
+- **数据模型**（`src/lib/types.ts`）：`DictGroup`（`id/code/name/description/status/builtin/createdAt`）+ `DictEntry`（`id/groupId/parentId/code/name/description/level/sort/status/builtin/createdAt/showInTop?`）。`parentId` 组成**无限层级**，`level` 为 1 起的深度（**由上级字典派生：`level = parent.level + 1`，表单里只读、不手填**），`sort` 控制同级顺序；`builtin` 项禁止删除，防止内置业务字典被清空。`showInTop` 仅 `ORG_TYPE` 分类有意义，控制是否出现在组织管理页顶部统计卡，缺省时按内置规则（company 不显示、其余显示）兼容旧快照。
 - **共享数据源**（`src/lib/dict-store.ts`）：localStorage key `cyanos-dictionaries-v2`（版本化：内置默认数据变更时提升版本号，避免旧快照覆盖新默认值）；模块级 `listeners` + `CHANGE_EVENT` 实现同页多组件同步，`storage` 事件实现跨标签页同步。页面组件统一用 `useDictionaries()` 读取、用 `dictActions` 写入，**不要**各自维护字典副本。
 - **页面布局**：`PageHeader`（含「恢复默认」「新增分类」）+ 四格统计（分类数 / 字典项总数 / 已启用 / 已停用）+ 两栏 `.dict-workspace`（左分类 `260–320px`，右字典项树）；复用 §5.7 的视口绑定面板规则，面板类为 `.dict-panel` / `.dict-panel__body`。
 - **分类管理**：列表展示名称、编码、项数；搜索按名称/编码/描述；新增/编辑用 Modal（编码全局唯一）；内置分类只可编辑与启停，不可删除；删除分类级联删除其下全部层级的字典项（二次确认）。
-- **字典项管理**：树形缩进 + 展开收起 + `L{n}` 层级标签；搜索命中时保留祖先链；节点操作含新增子项、编辑、上移/下移（同级交换 `sort`）、启停、删除（级联子树并二次确认）；内置项编码不可改。表单中「上级字典项」用 `Select`，需排除自身及其子树，防止形成环。
-- **与组织管理联动**：分类编码 `ORG_TYPE` 为组织类别源。`useOrgTypeOptions()` 只返回该分类中**启用**的项并按 `sort` 排序，决定组织新增下拉与编辑态类型选项；`useOrgTypeLabels()` 决定组织树、详情与统计卡的类型名称。因此**改名、停用、排序、新增类别会实时反映到组织页**；不要绕过字典直接改 `orgTypeLabels` 常量。
+- **字典项管理**：树形缩进 + 展开收起 + `L{n}` 层级标签；搜索命中时保留祖先链；节点操作含新增子项、编辑、上移/下移、启停、删除（级联子树并二次确认）；内置项编码不可改。表单中「上级字典项」用 `Select`，需排除自身及其子树，防止形成环；**「层级」随上级自动派生、只读**。**编辑必须提交 `parentId`**（新建分支本就有），否则改上级后节点不会真正移动——树位置只认 `parentId`，`level` 只是展示数字。换上级时 `sort` 放到新父节点末尾避免重复。**上移/下移用 `dictActions.reorderSiblings()` 按数组顺序整体重排、sort 规范化为 1..n**，不要只交换两个 sort 值（重复值会失效）。
+- **与组织管理联动**：分类编码 `ORG_TYPE` 为组织类别源。`useOrgTypeOptions()` 只返回该分类中**启用**的项并按 `sort` 排序，决定组织新增下拉与编辑态类型选项；`useOrgTypeLabels()` 决定组织树、详情的类型名称（含字典新增类型，返回 `Record<string,string>`）；`useOrgTopTypes()` 决定顶部统计卡，取启用且 `showInTop` 的项、按 sort 排序、**最多 6 个**。因此**改名、停用、排序、新增类别会实时反映到组织页**。字典页 `ORG_TYPE` 项操作区的 **Pin 按钮**切换 `showInTop`（开启时若已达 6 个则拒绝并提示）。组织页类型图标/色彩用 `getMeta(type)` 带兜底（`META_FALLBACK`），**新增类型（如 plant）不能因 `TYPE_META` 为 undefined 而白屏**。不要绕过字典直接改 `orgTypeLabels` 常量。
 - **参考实现**：`src/pages/dictionaries.tsx`、`src/lib/dict-store.ts`；预置字典见 `src/lib/mock-data.ts`。**当前只预置「组织类别」一个内置分类**（公司 / 车间 / 工段 / 部门 / 承包商 5 项），它同时是组织页的真实数据源；其他业务字典暂不预置演示数据，需要时通过页面「新增分类」自行创建。多级层级与排序能力由数据模型支持，不依赖预置示例展示。
 
 ### 5.9 多租户与账号体系（`/login` `/register` `/profile` `/admin`）
@@ -432,6 +432,8 @@
 | 组织树高度随节点数量增长 / 内容增减撑高页面 | `.org-workspace` 视口高度 + `.org-panel__body` 内部滚动，flex 祖先全部 `min-height: 0` |
 | 组织类型写死在页面常量 / 按父节点类型写死可新增类别 | 类型选项与名称走 `useOrgTypeOptions` / `useOrgTypeLabels`；根级仅公司+承包商，下级五类 |
 | 字典项只能平铺 / 各自维护一份字典副本 | `DictEntry.parentId` 多级树 + `dict-store.ts` 共享数据源与 localStorage 同步 |
+| 编辑字典项漏提交 `parentId` / 层级表单可手填 / 上移下移只交换 sort | 编辑连同 `parentId` 一起提交让节点真正移动；层级由上级派生只读；`reorderSiblings` 整体重排规范化 sort |
+| 组织顶部统计卡写死五类 / 新增字典类别不显示 / 新类型 undefined 白屏 | 顶部卡走 `useOrgTopTypes`（启用 + `showInTop` + 最多 6 个），字典页 Pin 开关控制；`getMeta` 兜底新类型图标色彩 |
 | 用 `scaleX` 或父级百分比做搜索框展开（文字变形 / 动画失效） | `.canvas-search` 的 `focus-within` 直接过渡 `width` 300→600px |
 | 头像颜色写在 `<Avatar style>` | 写在 `<Avatar.Fallback style>` |
 | 无组织时仍渲染侧栏导航 / 内容留出侧栏空 padding / 内容偏左右侧大片空白 | 无组织态隐藏侧栏，仅左上角保留 `<Brand />`，主区 `mx-auto max-w-[1680px]` 居中自适应 |

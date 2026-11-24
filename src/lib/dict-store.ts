@@ -111,6 +111,19 @@ export const dictActions = {
       entries: current.entries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
     });
   },
+  /** 按给定顺序重排同一父节点下的兄弟项，sort 规范化为 1..n，保证排序稳定生效 */
+  reorderSiblings(groupId: string, parentId: string | null, orderedIds: string[]) {
+    const current = getState();
+    const rank = new Map(orderedIds.map((id, index) => [id, index + 1]));
+    commit({
+      ...current,
+      entries: current.entries.map((e) =>
+        e.groupId === groupId && e.parentId === parentId && rank.has(e.id)
+          ? { ...e, sort: rank.get(e.id)! }
+          : e,
+      ),
+    });
+  },
   deleteEntry(id: string) {
     const current = getState();
     const removed = new Set<string>([id]);
@@ -153,17 +166,33 @@ export function useOrgTypeOptions(): Array<{ value: OrgType; label: string }> {
   }, [groups, entries]);
 }
 
-/** 组织节点展示用的类型名称，优先取字典，未配置时回退内置标签 */
-export function useOrgTypeLabels(): Record<OrgType, string> {
+/** 组织管理页顶部统计卡的类型源：ORG_TYPE 中启用且勾选「显示在顶部」的项，最多 6 个 */
+export function useOrgTopTypes(): Array<{ code: string; name: string }> {
   const { groups, entries } = useDictionaries();
   return useMemo(() => {
-    const labels = { ...orgTypeLabels };
+    const group = groups.find((g) => g.code === "ORG_TYPE" && g.status === "enabled");
+    if (!group) return [];
+    return entries
+      .filter((e) => e.groupId === group.id && e.status === "enabled")
+      // 兼容旧快照：showInTop 缺省时按内置规则（company 不占顶部卡，其余显示）
+      .filter((e) => (e.showInTop ?? e.code !== "company"))
+      .sort((a, b) => a.sort - b.sort)
+      .slice(0, 6)
+      .map((e) => ({ code: e.code, name: e.name }));
+  }, [groups, entries]);
+}
+
+/** 组织节点展示用的类型名称，优先取字典，未配置时回退内置标签或字典编码 */
+export function useOrgTypeLabels(): Record<string, string> {
+  const { groups, entries } = useDictionaries();
+  return useMemo(() => {
+    const labels: Record<string, string> = { ...orgTypeLabels };
     const group = groups.find((g) => g.code === "ORG_TYPE");
     if (group) {
       entries
-        .filter((e) => e.groupId === group.id && e.code in labels)
+        .filter((e) => e.groupId === group.id)
         .forEach((e) => {
-          labels[e.code as OrgType] = e.name;
+          labels[e.code] = e.name;
         });
     }
     return labels;

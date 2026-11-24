@@ -11,6 +11,7 @@ import {
   TextField,
 } from "@heroui/react";
 import {
+  Boxes,
   Building2,
   CalendarDays,
   Check,
@@ -34,7 +35,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui";
-import { useOrgTypeLabels, useOrgTypeOptions } from "@/lib/dict-store";
+import { useOrgTopTypes, useOrgTypeLabels, useOrgTypeOptions } from "@/lib/dict-store";
 import { initialOrganizations } from "@/lib/mock-data";
 import {
   CHILD_ORG_TYPES,
@@ -52,7 +53,7 @@ type Meta = {
   color: string;
 };
 
-const TYPE_META: Record<OrgType, Meta> = {
+const TYPE_META: Record<string, Meta> = {
   company: {
     icon: Building2,
     chip: "accent",
@@ -84,6 +85,15 @@ const TYPE_META: Record<OrgType, Meta> = {
     color: "var(--muted)",
   },
 };
+
+/** 字典新增的组织类型（如 plant）没有专属 meta，用中性的兜底样式，避免 undefined 白屏 */
+const META_FALLBACK: Meta = {
+  icon: Boxes,
+  chip: "accent",
+  tile: "bg-accent/12 text-accent",
+  color: "var(--brand-purple)",
+};
+const getMeta = (type: string): Meta => TYPE_META[type] ?? META_FALLBACK;
 
 function InfoField({
   label,
@@ -142,6 +152,7 @@ function EditField({
 export default function OrganizationsPage() {
   const orgTypeOptions = useOrgTypeOptions();
   const orgTypeLabels = useOrgTypeLabels();
+  const orgTopTypes = useOrgTopTypes();
   const [orgs, setOrgs] = useState<Organization[]>(initialOrganizations);
   const [selectedId, setSelectedId] = useState(initialOrganizations[0].id);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
@@ -169,7 +180,7 @@ export default function OrganizationsPage() {
   const byId = useMemo(() => new Map(orgs.map((o) => [o.id, o])), [orgs]);
   const selected = byId.get(selectedId) ?? orgs[0];
   const parent = selected.parentId ? byId.get(selected.parentId) : undefined;
-  const meta = TYPE_META[selected.type];
+  const meta = getMeta(selected.type);
   const SelectedIcon = meta.icon;
 
   const counts = useMemo(
@@ -319,7 +330,7 @@ export default function OrganizationsPage() {
         const children = orgs.filter((o) => o.parentId === org.id);
         const shownChildren = children.filter((c) => !visibleIds || visibleIds.has(c.id));
         const expanded = expandedIds.has(org.id) || (!!query && shownChildren.length > 0);
-        const itemMeta = TYPE_META[org.type];
+        const itemMeta = getMeta(org.type);
         const Icon = itemMeta.icon;
         const isSelected = org.id === selected.id;
         const isRoot = org.parentId === null;
@@ -430,29 +441,34 @@ export default function OrganizationsPage() {
         description="维护公司、车间、部门与承包商的组织架构及基础信息。"
       />
 
-      {/* 概览条 —— 与用户管理保持一致的紧凑统计样式 */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      {/* 概览条 —— 与用户管理保持一致的紧凑统计样式；类型卡由「组织类别」字典的显示开关动态生成 */}
+      <div
+        className="mb-5 grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
+      >
         {[
-          { label: "组织总数", value: counts.all, icon: Building2, color: "var(--brand-purple)" },
-          { label: orgTypeLabels.workshop, value: counts.workshop, icon: Factory, color: "var(--brand-green-strong)" },
-          { label: orgTypeLabels.section, value: counts.section, icon: Workflow, color: "var(--warning)" },
-          { label: orgTypeLabels.department, value: counts.department, icon: UsersRound, color: "var(--muted)" },
-          { label: orgTypeLabels.contractor, value: counts.contractor, icon: HardHat, color: "var(--muted)" },
+          { label: "组织总数", value: counts.all, code: "__all__" },
+          ...orgTopTypes.map((t) => ({
+            label: t.name,
+            value: orgs.filter((o) => o.type === (t.code as OrgType)).length,
+            code: t.code,
+          })),
         ].map((s) => {
-          const Icon = s.icon;
+          const m = getMeta(s.code);
+          const Icon = m.icon;
           return (
-            <div className="neon-card flex items-center gap-3 rounded-xl px-4 py-3.5" key={s.label}>
+            <div className="neon-card flex items-center gap-3 rounded-xl px-4 py-3.5" key={s.code}>
               <span
                 className="flex size-10 items-center justify-center rounded-lg"
                 style={{
-                  background: `color-mix(in oklch, ${s.color} 14%, transparent)`,
-                  color: s.color,
+                  background: `color-mix(in oklch, ${m.color} 14%, transparent)`,
+                  color: m.color,
                 }}
               >
                 <Icon className="size-5" />
               </span>
-              <div>
-                <p className="text-muted text-xs">{s.label}</p>
+              <div className="min-w-0">
+                <p className="text-muted truncate text-xs">{s.label}</p>
                 <p className="text-foreground text-xl font-bold leading-tight">{s.value}</p>
               </div>
             </div>

@@ -28,6 +28,8 @@ export interface DictEntry {
   status: DictStatus;
   builtin: boolean;
   createdAt: string;
+  /** 组织类别字典项是否显示在组织管理页顶部统计卡；仅 ORG_TYPE 分类有意义，缺省按内置规则处理 */
+  showInTop?: boolean;
 }
 
 /** 组织节点：用 parentId 组装树，不含岗位/部门岗位概念 */

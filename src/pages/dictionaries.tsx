@@ -21,11 +21,13 @@ import {
   Info,
   Lock,
   Pencil,
+  Pin,
   Plus,
   Power,
   RotateCcw,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui";
@@ -121,6 +123,23 @@ export default function DictionariesPage() {
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<DictGroup | null>(null);
   const [deleteEntryTarget, setDeleteEntryTarget] = useState<DictEntry | null>(null);
   const [formError, setFormError] = useState("");
+  const [topNotice, setTopNotice] = useState("");
+
+  const isShownInTop = (entry: DictEntry) => entry.showInTop ?? entry.code !== "company";
+  const toggleShowInTop = (entry: DictEntry) => {
+    if (isShownInTop(entry)) {
+      dictActions.updateEntry(entry.id, { showInTop: false });
+      setTopNotice(`已取消「${entry.name}」在组织顶部的显示`);
+      return;
+    }
+    const shownCount = groupEntries.filter((e) => isShownInTop(e) && e.status === "enabled").length;
+    if (shownCount >= 6) {
+      setTopNotice("组织顶部最多显示 6 个类别，请先取消一个再开启");
+      return;
+    }
+    dictActions.updateEntry(entry.id, { showInTop: true });
+    setTopNotice(`「${entry.name}」已显示在组织管理页顶部`);
+  };
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? groups[0];
 
@@ -317,14 +336,26 @@ export default function DictionariesPage() {
         setExpandedIds((prev) => new Set(prev).add(entryForm.parentId as string));
       }
     } else if (entryForm.source) {
+      // 层级由上级字典派生，改上级时 level 已在表单里同步；这里必须连 parentId 一起提交，
+      // 否则节点不会真正移动到新上级下方（树位置由 parentId 决定，level 只是展示数字）。
+      // 换上级时 sort 放到新父节点末尾，避免与现有兄弟的 sort 重复导致顺序错乱。
+      const parentChanged = entryForm.parentId !== entryForm.source.parentId;
+      const nextSort = parentChanged
+        ? childrenOf(entryForm.parentId).length + 1
+        : entryForm.sort;
       dictActions.updateEntry(entryForm.source.id, {
+        parentId: entryForm.parentId,
         code,
         name,
         description: entryForm.description.trim(),
         level: entryForm.level,
-        sort: entryForm.sort,
+        sort: nextSort,
         status: entryForm.status,
       });
+      // 移动后自动展开新上级，避免节点"消失"造成没生效的错觉
+      if (entryForm.parentId) {
+        setExpandedIds((prev) => new Set(prev).add(entryForm.parentId as string));
+      }
     }
     setEntryForm(null);
   };
@@ -332,10 +363,12 @@ export default function DictionariesPage() {
   const moveEntry = (entry: DictEntry, direction: -1 | 1) => {
     const siblings = childrenOf(entry.parentId);
     const index = siblings.findIndex((e) => e.id === entry.id);
-    const target = siblings[index + direction];
-    if (!target) return;
-    dictActions.updateEntry(entry.id, { sort: target.sort });
-    dictActions.updateEntry(target.id, { sort: entry.sort });
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= siblings.length) return;
+    // 用数组顺序整体重排，sort 规范化为 1..n；比交换 sort 值更稳，重复值也能正确移动
+    const ids = siblings.map((e) => e.id);
+    [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
+    dictActions.reorderSiblings(entry.groupId, entry.parentId, ids);
   };
 
   const renderEntryTree = (parentId: string | null, depth: number): ReactNode =>
@@ -408,6 +441,18 @@ export default function DictionariesPage() {
               </Chip>
 
               <div className="flex shrink-0 items-center gap-0.5">
+                {selectedGroup?.code === "ORG_TYPE" && (
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`${isShownInTop(entry) ? "取消" : "设置"} ${entry.name} 显示在组织顶部`}
+                    className={`size-7 min-w-7 ${isShownInTop(entry) ? "text-accent" : "text-muted"}`}
+                    onPress={() => toggleShowInTop(entry)}
+                  >
+                    <Pin className="size-3.5" />
+                  </Button>
+                )}
                 <Button
                   isIconOnly
                   size="sm"
@@ -643,6 +688,15 @@ export default function DictionariesPage() {
             />
           </div>
 
+          {topNotice && (
+            <div className="bg-accent/10 text-accent mx-5 mt-3 flex items-center justify-between rounded-lg px-3 py-2 text-xs">
+              <span>{topNotice}</span>
+              <button type="button" aria-label="关闭提示" className="cursor-pointer" onClick={() => setTopNotice("")}>
+                <X className="size-3.5" />
+              </button>
+            </div>
+          )}
+
           <div className="dict-panel__body px-3 py-2">
             {renderEntryTree(null, 0)}
             {groupEntries.length === 0 && (
@@ -787,17 +841,10 @@ export default function DictionariesPage() {
                     </Field>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <Field label="层级">
-                      <TextField className="w-full" type="number">
+                    <Field label="层级（随上级自动）">
+                      <TextField className="w-full" isDisabled>
                         <InputGroup>
-                          <InputGroup.Input
-                            value={String(entryForm?.level ?? 1)}
-                            onChange={(e) =>
-                              setEntryForm((prev) =>
-                                prev && { ...prev, level: Math.max(1, Number(e.target.value) || 1) },
-                              )
-                            }
-                          />
+                          <InputGroup.Input value={`第 ${entryForm?.level ?? 1} 层`} readOnly />
                         </InputGroup>
                       </TextField>
                     </Field>
