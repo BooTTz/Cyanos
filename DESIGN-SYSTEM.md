@@ -468,7 +468,7 @@
 - **数据层**：Neon Postgres；`DATABASE_URL`、`JWT_SECRET` 以 Vercel Secret 存在 Production，`VITE_API_BASE=/api` 以 Config 存在，前端构建时注入。
 - **后端形态**：`api/auth.ts`、`api/state.ts`、`api/mutations.ts` 以 Vercel Serverless Functions 运行，`vercel.json` 保留 SPA 回退并让 `/api/*` 优先走函数。
 - **访问保护**：项目 `ssoProtection` 已置空、`protectionBypass` 已撤销，生产域名可公开访问；后续新部署不要重新开启 SSO 保护，否则登录页会被 Vercel 登录墙拦截。
-- **部署方式**：本机网络无法直连 `api.vercel.com`，实际部署通过 `vercel.com/api` 代理完成（本地代理把 CLI 的 API 请求转发到该域名）。后续代码更新若复现连接超时，不要反复执行设备码登录；优先走网页 API 代理或 Vercel Dashboard 的 Git 集成。
+- **部署方式（2026-11-24 起）**：GitHub 仓库 `https://github.com/BooTTz/Cyanos`（public，`main` 分支）已通过 Vercel Git 集成关联到本项目。推送到 `main` 会自动触发生产部署，其他分支/PR 生成预览部署；本地不再需要 Vercel 登录、设备码或临时代理。只有修改环境变量、域名等项目配置时才需要 API 或 Dashboard。若需调用 Vercel REST API，注意 `api.vercel.com` 在本机不可直连，可用 `https://vercel.com/api/...` 作为等价路径。
 - **预置账号**：`wechat@cyanos.cn` / `CyanOS1120`（普通用户），`CyanAdmin` / `CyanOS1120`（超管，`/admin`）。
 - **密钥纪律**：含明文 Token/连接串的一次性 `deploy.sh` 已在部署成功后删除；不要重新提交含密钥的脚本或 `.env`。
 - **注销功能迁移**：线上 Neon 已执行 `database/schema.sql` 中的注销字段 DDL：`accounts` 状态枚举扩展为 `active | pending-deletion | disabled`，并新增 `deletion_requested_at/reason/expires_at` 与 `workspaces` 对应字段；索引 `idx_*_deletion_expiry` 已建立。后续任何新环境都必须先执行该 schema 再部署，否则申请注销会因约束/缺列失败。
