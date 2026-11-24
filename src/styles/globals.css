@@ -1,0 +1,447 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Cyanos — Neon B2B Workspace Theme
+   Neon purple + neon mint green, gradient mesh, glow buttons
+   ============================================================ */
+:root {
+  --brand-purple: oklch(0.68 0.25 292);
+  --brand-purple-deep: oklch(0.55 0.27 296);
+  --brand-purple-soft: oklch(0.95 0.035 292);
+  --brand-green: oklch(0.87 0.22 158);
+  --brand-green-deep: oklch(0.72 0.2 160);
+  --brand-green-soft: oklch(0.96 0.05 158);
+  --brand-cyan: oklch(0.83 0.16 205);
+
+  --glow-purple: oklch(0.68 0.25 292 / 0.45);
+  --glow-green: oklch(0.87 0.22 158 / 0.4);
+
+  --canvas: oklch(0.975 0.012 292);
+}
+
+:root,
+[data-theme="light"] {
+  --accent: var(--brand-purple);
+  --accent-foreground: var(--snow);
+  --success: var(--brand-green-deep);
+  --success-foreground: var(--eclipse);
+  /* 主题感知强绿：亮色主题用深绿保证文字可读 */
+  --brand-green-strong: var(--brand-green-deep);
+  --focus: var(--brand-purple);
+  --radius: 0.8rem;
+  --field-radius: calc(var(--radius) * 1.4);
+
+  --background: var(--canvas);
+  --surface: oklch(1 0 0 / 0.82);
+  --surface-foreground: var(--eclipse);
+  --surface-secondary: oklch(0.972 0.012 292);
+  --surface-tertiary: oklch(0.95 0.018 292);
+  --border: oklch(0.9 0.02 292);
+  --separator: oklch(0.915 0.018 292);
+  --field-background: oklch(1 0 0);
+  --field-foreground: var(--eclipse);
+  --field-border: oklch(0.9 0.02 292);
+}
+
+[data-theme="dark"] {
+  --accent: oklch(0.76 0.25 296);
+  --accent-foreground: oklch(0.16 0.04 292);
+  --success: oklch(0.9 0.23 158);
+  --success-foreground: oklch(0.16 0.04 292);
+  /* 暗色主题下霓虹绿更亮，呈发光灯管感 */
+  --brand-green-strong: oklch(0.9 0.23 158);
+  --focus: oklch(0.78 0.24 296);
+  --foreground: oklch(0.97 0.01 292);
+  --muted: oklch(0.72 0.03 292);
+
+  /* deep tinted dark — not pure black */
+  --background: oklch(0.135 0.022 285);
+  --surface: oklch(0.175 0.028 286 / 0.86);
+  --surface-foreground: var(--foreground);
+  --surface-secondary: oklch(0.21 0.032 286);
+  --surface-tertiary: oklch(0.25 0.038 288);
+  --overlay: oklch(0.2 0.03 286);
+  --overlay-foreground: var(--foreground);
+  --border: oklch(0.3 0.05 292 / 0.7);
+  --separator: oklch(0.29 0.045 290 / 0.7);
+  --field-background: oklch(0.2 0.03 286);
+  --field-foreground: var(--foreground);
+  --field-placeholder: oklch(0.62 0.03 292);
+  --field-border: oklch(0.31 0.05 292 / 0.8);
+  --default: oklch(0.24 0.035 286);
+  --default-foreground: var(--foreground);
+  --backdrop: oklch(0.08 0.02 285 / 0.72);
+  --link: var(--brand-cyan);
+
+  --glow-purple: oklch(0.76 0.25 296 / 0.55);
+  --glow-green: oklch(0.9 0.23 158 / 0.5);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ---------- Canvas: gradient mesh behind all pages ---------- */
+.app-canvas {
+  position: relative;
+  min-height: 100vh;
+  background-color: var(--background);
+  background-image: radial-gradient(55rem 40rem at 12% -8%, var(--glow-purple), transparent 62%),
+    radial-gradient(48rem 38rem at 105% 8%, var(--glow-green), transparent 58%),
+    radial-gradient(40rem 34rem at 70% 108%, oklch(0.83 0.16 205 / 0.22), transparent 60%);
+  background-attachment: fixed;
+}
+[data-theme="dark"] .app-canvas {
+  background-image: radial-gradient(52rem 38rem at 8% -10%, oklch(0.55 0.22 295 / 0.28), transparent 60%),
+    radial-gradient(46rem 36rem at 108% 6%, oklch(0.7 0.2 158 / 0.2), transparent 58%),
+    radial-gradient(42rem 34rem at 68% 112%, oklch(0.55 0.16 205 / 0.18), transparent 60%);
+}
+
+/* ---------- Glass surfaces ---------- */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--border);
+}
+[data-theme="dark"] .glass {
+  background: oklch(0.19 0.03 286 / 0.72);
+  border-color: oklch(0.32 0.06 292 / 0.55);
+}
+
+/* 顶部搜索胶囊：点击/聚焦后向后（右）拉长约一倍，带缓动与紫色光晕。
+   宽度只由自身控制，不依赖父级百分比，避免 flex 收缩导致动画卡顿；
+   窄屏按视口收敛，手机端保持原宽不挤压右侧控件。 */
+.canvas-search {
+  width: 300px;
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.canvas-search:focus-within {
+  width: 600px;
+  box-shadow: 0 0 20px var(--glow-purple);
+}
+@media (max-width: 1280px) {
+  .canvas-search:focus-within {
+    width: min(600px, 50vw);
+  }
+}
+@media (max-width: 640px) {
+  .canvas-search,
+  .canvas-search:focus-within {
+    width: min(300px, 52vw);
+  }
+}
+[data-theme="dark"] .canvas-search:focus-within {
+  box-shadow: 0 0 24px var(--glow-purple), 0 0 0 1px oklch(0.76 0.25 296 / 0.35);
+}
+
+.neon-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.25s ease, box-shadow 0.3s ease, transform 0.25s ease;
+}
+.neon-card:hover {
+  border-color: oklch(0.68 0.25 292 / 0.55);
+  box-shadow: 0 0 0 1px oklch(0.68 0.25 292 / 0.18), 0 12px 40px -16px var(--glow-purple);
+}
+[data-theme="dark"] .neon-card {
+  background: oklch(0.19 0.028 286 / 0.78);
+  border-color: oklch(0.3 0.05 292 / 0.5);
+}
+[data-theme="dark"] .neon-card:hover {
+  border-color: oklch(0.76 0.25 296 / 0.7);
+  box-shadow: 0 0 0 1px oklch(0.76 0.25 296 / 0.25), 0 14px 46px -14px var(--glow-purple);
+}
+
+/* ---------- Neon glow buttons (light-bulb feel) ---------- */
+.button--primary {
+  box-shadow: 0 6px 20px -6px var(--glow-purple), inset 0 1px 0 oklch(1 0 0 / 0.25);
+  transition: box-shadow 0.25s ease, transform 0.15s ease, filter 0.25s ease;
+}
+.button--primary:hover {
+  box-shadow: 0 8px 28px -4px var(--glow-purple), 0 0 14px var(--glow-purple),
+    inset 0 1px 0 oklch(1 0 0 / 0.3);
+  filter: brightness(1.06);
+}
+.button--primary:active {
+  transform: translateY(1px);
+}
+[data-theme="dark"] .button--primary {
+  box-shadow: 0 0 18px var(--glow-purple), 0 0 38px oklch(0.76 0.25 296 / 0.25),
+    inset 0 1px 0 oklch(1 0 0 / 0.3);
+}
+[data-theme="dark"] .button--primary:hover {
+  box-shadow: 0 0 26px var(--glow-purple), 0 0 54px oklch(0.76 0.25 296 / 0.4),
+    inset 0 1px 0 oklch(1 0 0 / 0.4);
+}
+
+/* 危险确认按钮：保留 HeroUI danger 语义色，只叠加柔和红色光晕 */
+.button--danger {
+  box-shadow: 0 6px 20px -6px color-mix(in oklch, var(--danger) 55%, transparent),
+    inset 0 1px 0 oklch(1 0 0 / 0.24);
+  transition: box-shadow 0.25s ease, transform 0.15s ease, filter 0.25s ease;
+}
+.button--danger:hover {
+  box-shadow: 0 8px 26px -4px color-mix(in oklch, var(--danger) 65%, transparent),
+    0 0 14px color-mix(in oklch, var(--danger) 35%, transparent), inset 0 1px 0 oklch(1 0 0 / 0.3);
+  filter: brightness(1.05);
+}
+.button--danger:active {
+  transform: translateY(1px);
+}
+
+.glow-green {
+  box-shadow: 0 6px 20px -6px var(--glow-green), inset 0 1px 0 oklch(1 0 0 / 0.3);
+}
+[data-theme="dark"] .glow-green {
+  box-shadow: 0 0 18px var(--glow-green), 0 0 36px oklch(0.9 0.23 158 / 0.25),
+    inset 0 1px 0 oklch(1 0 0 / 0.35);
+}
+
+/* Circular glass control buttons floating on canvas */
+.canvas-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(14px) saturate(140%);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+}
+.canvas-btn:hover {
+  color: var(--accent);
+  border-color: oklch(0.68 0.25 292 / 0.6);
+  box-shadow: 0 0 16px var(--glow-purple);
+  transform: translateY(-1px);
+}
+[data-theme="dark"] .canvas-btn {
+  background: oklch(0.2 0.03 286 / 0.7);
+  border-color: oklch(0.32 0.06 292 / 0.5);
+}
+
+/* 侧栏折叠开关：与导航 tile 同构，但用紫→绿渐变描边 + 彩色图标做功能区分 */
+.sidebar-toggle-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  /* 亮色下用深紫图标，在淡渐变底上更有色彩对比；暗色主题下面覆盖为亮紫 */
+  color: var(--brand-purple-deep);
+  background-image: linear-gradient(135deg, var(--glow-purple), var(--glow-green));
+  border: 1px solid color-mix(in oklch, var(--accent) 32%, transparent);
+  box-shadow: 0 4px 14px -6px var(--glow-purple);
+  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.sidebar-toggle-tile:hover {
+  color: var(--snow);
+  background-image: linear-gradient(135deg, var(--brand-purple), var(--brand-purple-deep) 45%, var(--brand-green-deep));
+  border-color: transparent;
+  box-shadow: 0 6px 18px -4px var(--glow-purple), 0 0 14px var(--glow-green);
+  transform: translateY(-1px);
+}
+.sidebar-toggle-tile:active {
+  transform: translateY(0);
+}
+[data-theme="dark"] .sidebar-toggle-tile {
+  color: var(--accent);
+  background-image: linear-gradient(135deg, oklch(0.76 0.25 296 / 0.3), oklch(0.9 0.23 158 / 0.26));
+  box-shadow: 0 0 14px var(--glow-purple);
+}
+[data-theme="dark"] .sidebar-toggle-tile:hover {
+  color: var(--snow);
+  box-shadow: 0 0 22px var(--glow-purple), 0 0 18px var(--glow-green);
+}
+
+/* ---------- Organization workspace: viewport-bound panels ----------
+   参考 TDesign / 精品 SaaS 后台的双栏范式：
+   - 高度由视口决定，树节点或详情字段增减都不会撑高页面；
+   - 每个可滚动区域独立滚动，所有 flex 祖先必须 min-h-0。 */
+.org-workspace,
+.dict-workspace {
+  display: grid;
+  gap: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .org-workspace,
+  .dict-workspace {
+    height: clamp(520px, calc(100vh - 300px), 760px);
+    height: clamp(520px, calc(100dvh - 300px), 760px);
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  }
+  /* 字典分类名称较短，左栏比组织树更窄 */
+  .dict-workspace {
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .org-workspace {
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  }
+  .dict-workspace {
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  }
+}
+.org-panel,
+.dict-panel {
+  display: flex;
+  min-height: 520px;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+@media (min-width: 1024px) {
+  .org-panel,
+  .dict-panel {
+    height: 100%;
+    min-height: 0;
+  }
+}
+.org-panel__body,
+.dict-panel__body {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+
+/* ---------- Gradients & text ---------- */
+.bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-purple-deep) 42%, var(--brand-green-deep) 100%);
+}
+.bg-neon-gradient {
+  background-image: linear-gradient(120deg, var(--brand-purple) 0%, var(--brand-cyan) 50%, var(--brand-green) 100%);
+}
+.text-brand-gradient {
+  background-image: linear-gradient(120deg, var(--brand-purple) 0%, var(--brand-green-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Ambient animated blobs (auth screen) ---------- */
+@keyframes float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(28px, -34px, 0) scale(1.14); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.06); }
+  50% { transform: translate3d(-32px, 28px, 0) scale(0.92); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
+}
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: 0.6;
+  animation: pulse-glow 9s ease-in-out infinite;
+}
+.blob-purple { animation: float-a 12s ease-in-out infinite; }
+.blob-green { animation: float-b 14s ease-in-out infinite; }
+
+/* ---------- Neon status dots ---------- */
+.dot-neon {
+  box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: oklch(0.8 0.04 292);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 9999px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: oklch(0.42 0.07 292);
+  background-clip: content-box;
+}
+
+/* ---------- Internal list scrolling (table body scrolls, page stays put) ---------- */
+.table-scroll {
+  /* Don't chain scroll to the page when the list hits its top/bottom edge */
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.table-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+
+/* 表格内嵌于圆角卡片：统一使用 secondary 平铺变体（无灰底、无内嵌圆角），
+   圆角只由外层 neon-card 提供一层。primary 变体是"灰底大圆角容器 + 内嵌白色
+   圆角卡片"的嵌套结构，会出现表头圆角/数据行圆角/卡片圆角三层叠加，
+   视觉上"内外圆角反了"，不要在内嵌卡片的表格上使用。 */
+.neon-card .table-root--primary { border-radius: 0; }
+.neon-card .table-root--secondary :is(th.table__column:first-child, th.table__column:last-child) {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* 超管后台「全部组织」下的子标签：图2 所示的蓝色文字链接式，紧贴表格左缘，
+   不占用胶囊轨道，也不在左右两端留下滚动箭头残片。 */
+.admin-subtabs [data-slot="tabs-list-container"] {
+  background: transparent;
+  border-bottom: 0;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: block;
+  overflow: visible;
+}
+.admin-subtabs [data-slot="tabs-list"] {
+  display: flex;
+  gap: 1rem;
+  width: auto;
+  min-width: 0;
+}
+.admin-subtabs [data-slot="tabs-tab"] {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: transparent;
+  box-shadow: none;
+}
+.admin-subtabs [data-slot="tabs-tab"][aria-selected="true"] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.admin-subtabs [aria-label="Scroll tabs left"],
+.admin-subtabs [aria-label="Scroll tabs right"] {
+  display: none;
+}
+
+/* 顶层标签轨道：四个标签已能完整展示，隐藏 HeroUI 两端的滚动箭头残片 */
+.neon-card > [data-slot="tabs"] > [data-slot="tabs-list-container"] [aria-label="Scroll tabs left"],
+.neon-card > [data-slot="tabs"] > [data-slot="tabs-list-container"] [aria-label="Scroll tabs right"] {
+  display: none;
+}
+
+.chart-grid line { stroke: var(--separator); stroke-width: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob, .blob-purple, .blob-green { animation: none; }
+}
