@@ -225,7 +225,7 @@ export function AppShell() {
       {/* Desktop sidebar — floating glass rail, collapsible；无组织时隐藏 */}
       {hasWorkspace && (
         <aside
-          className={`border-separator/70 bg-surface/70 fixed inset-y-3 left-3 z-30 hidden overflow-hidden rounded-2xl border backdrop-blur-xl transition-[width] duration-300 ease-in-out lg:block ${
+          className={`sidebar-rail border-separator/70 bg-surface/70 fixed inset-y-3 left-3 z-30 hidden overflow-hidden rounded-2xl border backdrop-blur-xl transition-[width,border-color,box-shadow] duration-300 ease-in-out lg:block ${
             collapsed ? "w-[68px]" : "w-[236px]"
           }`}
         >

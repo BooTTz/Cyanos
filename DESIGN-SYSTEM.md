@@ -17,7 +17,7 @@
 | 气质 | 现代、灵动、霓虹感、企业级可信赖 |
 | Logo | 六边形轮廓 + 内部钻石形，白色描边，位于紫→绿渐变圆角方块上 |
 | 站点图标（favicon） | **必须与平台 Logo 一致**：紫→深紫(42%)→绿 `135deg` 渐变圆角方块 + 白色六边形轮廓 + 白色钻石形；禁止使用框架默认图标 |
-| 鼠标光标 | **全站使用绿色发光指针**（`public/cursor/cursor.png`）：用户提供的标准指针 path，薄荷绿 `#00B292` + 青绿柔光、无白边；热区 `(6 12)` 对准尖端；输入框保留系统 `text` I-beam |
+| 鼠标光标 | **全站使用绿色发光指针**（`public/cursor/cursor.png`）：用户提供的标准指针 path，薄荷绿 `#00B292` + 青绿柔光、无白边；热区 `(5 5)` 对准左上尖端；图形已水平镜像使尖端朝左上（与系统鼠标一致）；输入框保留系统 `text` I-beam |
 
 **favicon 实现规范**：
 
@@ -34,7 +34,7 @@
 
 - 资源：`public/cursor/cursor.png`（32×32，`@supports` + fallback 到 `auto`/`pointer`）。图形来自用户提供的标准鼠标指针 SVG path（IconFont 风格圆角三角指针，尖端指向左上），纯薄荷绿填充 + 青绿三层高斯柔光，**无白色描边**（白描边只属于浏览器插件的贴纸，非平台光标）。源文件：`~/Downloads/指针.svg`。
 - 色值：填充 `#00B292`（与 `--brand-green-deep` 薄荷绿同色系），柔光 `rgba(0,235,180,0.9)`。
-- 热区：`url(...) 6 12` 对准指针尖端（左侧尖角）；不写热区会导致点击位置偏移。注意：更换图形后必须重算热区坐标，沿用旧值会错位。
+- 热区：`url(...) 5 5` 对准指针尖端（左上尖角）；不写热区会导致点击位置偏移。注意：更换图形后必须重算热区坐标，沿用旧值会错位。
 - 应用范围（`globals.css` 末尾 `@supports` 块）：`html, body` 默认指针 + `button, a, [role=button], .cursor-pointer` 全部替换；**文本输入框/textarea/contenteditable 保留 `text`**，禁止把 I-beam 也替换掉（可用性）。
 - 反模式：不要在透明画布上直接对 RGBA 做 GaussianBlur（黑色会渗透成方形黑影），要用 L 模式 mask 模糊后 putalpha；不要用白边箭头、不要用系统手型作 fallback 之外的混搭、不要忘记热区坐标。
 
@@ -157,8 +157,8 @@
 | `.button--primary` | 紫色外发光 + 内高光；hover 光晕扩散 + `brightness(1.06)`；active 下沉 1px；暗色双层光晕 | 主按钮需要强发光时叠加 |
 | `.button--danger` | 红色柔光 + 内高光；hover 光晕扩散；active 下沉 1px | 退出组织、注销组织、同意注销、注销账户等危险确认按钮，必须与 HeroUI `variant="danger"` 叠加使用 |
 | `.glow-green` | 同上的绿色版本 | 绿色主操作/成功态强调 |
-| `.canvas-btn` | 40px 圆形玻璃按钮；hover 紫色发光 + 上浮 1px | 画布上的所有圆形功能按钮 |
-| `.sidebar-toggle-tile` | 与导航 tile 同构的方形按钮：`rounded-xl`、紫→绿半透明渐变底、渐变描边；图标亮色用 `--brand-purple-deep`（在淡底上对比更强），暗色用 `var(--accent)`；hover 图标转 `var(--snow)`、底色切实心品牌渐变 + 紫绿双光晕 + 上浮 1px | 侧栏底部折叠 / 展开开关专用，**不要**沿用导航的默认灰 tile |
+| `.canvas-btn` | 40px 圆形玻璃按钮；hover 紫色描边 + 双层光晕浮起（**无位移**，避免边缘抖动） | 画布上的所有圆形功能按钮 |
+| `.sidebar-toggle-tile` | 与导航 tile 同构的方形按钮：`rounded-xl`、紫→绿半透明渐变底、渐变描边；图标亮色用 `--brand-purple-deep`（在淡底上对比更强），暗色用 `var(--accent)`；hover 图标转 `var(--snow)`、底色切实心品牌渐变 + 紫绿双光晕 + 1px 亮紫描边（**无位移**） | 侧栏底部折叠 / 展开开关专用，**不要**沿用导航的默认灰 tile |
 | `.dot-neon` | 双层 `currentColor` 光晕 | 状态圆点、通知红点 |
 | `.glass` | `blur(18px) saturate(140%)` + 1px 描边 | 搜索胶囊等玻璃控件 |
 
@@ -166,6 +166,7 @@
 
 - 过渡时长统一 `0.15s`（按压）～`0.3s`（光晕/边框），缓动用 `ease`。
 - 搜索胶囊展开：`.canvas-search` 用 `transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1)`，`focus-within` 时 `width: 300px → 600px` 并叠加紫色光晕（暗色再加 1px 亮紫描边光晕）。这是"点击后向后拉长一倍"的标准实现，勿改用 `transform: scaleX`（会拉伸文字/图标）。
+- 搜索胶囊 **hover**（未聚焦）也要有反馈：`:hover` 加紫色描边 + `0 8px 24px -12px var(--glow-purple)` 柔和阴影（无位移），与内容卡片 `.neon-card` 的悬浮语言一致。
 - 登录页漂浮光斑 `.blob`：`blur(64px)`，`pulse-glow 9s` + `float-a 12s` / `float-b 14s`。
 - 必须保留 `prefers-reduced-motion` 下关闭 blob 动画的媒体查询。
 - 滚动条、图表网格线样式已在 `globals.css` 统一定义，勿在页面内重复写。
@@ -241,6 +242,7 @@
     - hover：`group-hover:bg-accent/12 group-hover:text-accent`
   - 展开态额外保留文字与左侧 `-left-4` 发光竖条；收起态**不加竖条**（渐变 tile 本身已足够醒目）。
 - **折叠开关**：侧栏底部 `border-t` 分隔线上方，tile 尺寸与导航一致（展开 `size-9` / 收缩 `size-11`，均 `rounded-xl`，外层按钮 `p-1`），但**必须使用 `.sidebar-toggle-tile` 彩色渐变按钮**，不能用导航的默认灰 tile —— 图标用 `var(--accent)`，底色为紫绿半透明渐变 + 渐变描边，hover 转实心品牌渐变并叠加紫绿双光晕。展开时 tile + "收起导航"文字，收缩时仅 tile 居中（`PanelLeftClose` / `PanelLeftOpen`）。这样折叠开关既醒目又与整体霓虹语言一致。
+- **侧栏容器（`.sidebar-rail`）hover**：hover 时描边转亮紫 + 柔和外发光，与搜索条/内容卡片同一套反馈；只改颜色与阴影，不改宽度/位置，避免与折叠动画或鼠标进出相互干扰产生抖动。导航项图标 tile 在 hover 时加 1px 紫色内描边。
 - **移动菜单按钮**：右上角/左上角触发抽屉的按钮用 `PanelLeft` 图标 + 方形玻璃按钮（`glass ... rounded-xl size-10`），**不用**汉堡 `Menu` 三条线，与方形 tile 语言统一。
 - **hover 提示（收缩态必需）**：每个图标/开关用 `<Tooltip>`，触发器**必须**用 `<Tooltip.Trigger>` 包裹（同 Dropdown 的坑——原生元素/NavLink 不会自动成为触发器）；`placement`、`showArrow` 写在 `<Tooltip.Content>` 上，`delay`/`closeDelay` 写在 `<Tooltip>` 根上。展开态用 `isDisabled` 关闭提示。
 - **重要**：`Tooltip.Trigger` 内的 NavLink **children 必须是普通元素**（如直接写 `<Icon/>` + `<span/>`），不能用函数式 children `{({isActive}) => ...}`——函数 children 会导致 Trigger clone 注入的事件/ref 关联失效，Tooltip 不显示。激活态改用 `useLocation()` 手动计算 `isActive`。
@@ -456,6 +458,8 @@
 | 编辑字典项漏提交 `parentId` / 层级表单可手填 / 上移下移只交换 sort | 编辑连同 `parentId` 一起提交让节点真正移动；层级由上级派生只读；`reorderSiblings` 整体重排规范化 sort |
 | 组织顶部统计卡写死五类 / 新增字典类别不显示 / 新类型 undefined 白屏 | 顶部卡走 `useOrgTopTypes`（启用 + `showInTop` + 最多 6 个），字典页 Pin 开关控制；`getMeta` 兜底新类型图标色彩 |
 | 用 `scaleX` 或父级百分比做搜索框展开（文字变形 / 动画失效） | `.canvas-search` 的 `focus-within` 直接过渡 `width` 300→600px |
+| hover 用 `transform: translateY(-1px)` 做浮起（鼠标在元素边缘反复进出、跳来跳去） | 改用 box-shadow + border-color 表达浮起，元素几何位置保持不变；`:active` 也不做反向位移 |
+| 搜索条/侧栏无 hover 反馈（悬浮时无边界感） | `.canvas-search:hover` 与 `.sidebar-rail:hover` 补紫色描边 + 柔和光晕，与 `.neon-card` 同一套语言 |
 | 头像颜色写在 `<Avatar style>` | 写在 `<Avatar.Fallback style>` |
 | 无组织时仍渲染侧栏导航 / 内容留出侧栏空 padding / 内容偏左右侧大片空白 | 无组织态隐藏侧栏，仅左上角保留 `<Brand />`，主区 `mx-auto max-w-[1680px]` 居中自适应 |
 | 邀请后直接写入 membership / 退出后无法重邀 | 一律 pending 邀请 + 待办接受制；退出/拒绝后可重置邀请重发 |
