@@ -443,15 +443,15 @@ body {
 .chart-grid line { stroke: var(--separator); stroke-width: 1; }
 
 /* ============================================================
-   自定义鼠标光标：绿色发光箭头（与平台 Logo 薄荷绿同色系）
-   - 热区 (8 6) 对准箭头尖端，避免点击位置偏移
+   自定义鼠标光标：绿色发光指针（用户提供的 SVG 指针路径，薄荷绿 + 柔光）
+   - 热区 (8 23) 对准指针尖端，避免点击位置偏移
    - 全站默认指针 + pointer（可点击）统一用该图形
    - 文本输入保留系统 I-beam，保证可用性
    ============================================================ */
-@supports (cursor: url("/cursor/cursor.png") 8 6, auto) {
+@supports (cursor: url("/cursor/cursor.png") 8 23, auto) {
   :root {
-    --brand-cursor: url("/cursor/cursor.png") 8 6, auto;
-    --brand-cursor-pointer: url("/cursor/cursor.png") 8 6, pointer;
+    --brand-cursor: url("/cursor/cursor.png") 8 23, auto;
+    --brand-cursor-pointer: url("/cursor/cursor.png") 8 23, pointer;
   }
 
   html, body {
