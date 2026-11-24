@@ -2,7 +2,7 @@
 
 > **适用范围**：Cyanos 平台所有现有页面与后续增量开发。
 > **文档地位**：本文件是视觉层的**唯一事实来源（Single Source of Truth）**。任何颜色、渐变、发光、布局、组件用法的改动，都应先更新本文，再改代码；反之亦然。
-> **最后更新**：2026-11-23
+> **最后更新**：2026-11-24
 
 ---
 
@@ -16,6 +16,18 @@
 | 主色 | 亮紫（neon purple）+ 亮薄荷绿（neon green），青色作为过渡 |
 | 气质 | 现代、灵动、霓虹感、企业级可信赖 |
 | Logo | 六边形轮廓 + 内部钻石形，白色描边，位于紫→绿渐变圆角方块上 |
+| 站点图标（favicon） | **必须与平台 Logo 一致**：紫→深紫(42%)→绿 `135deg` 渐变圆角方块 + 白色六边形轮廓 + 白色钻石形；禁止使用框架默认图标 |
+
+**favicon 实现规范**：
+
+- 源文件：`public/favicon.svg`（唯一事实来源），与 `src/components/brand.tsx` 的 `BrandMark` 图形一致；`viewBox="0 0 32 32"`，`rx=10`，渐变 `#A26CFF → #872CF8(42%) → #00C877`（由品牌 Oklch 换算）。
+- 兼容文件：`public/favicon.ico`（16/24/32/48/64 多尺寸，由同一图形栅格化），项目根目录 `favicon.ico` 为同一副本，禁止残留 Next.js / Vite 默认图标。
+- `index.html` 仅保留两条引用：SVG 优先 + ICO 兜底，禁止重复或 `type` 与文件格式不匹配：
+
+```html
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+```
 
 **文案调性**：中文简洁专业，围绕"企业工作台、统一身份与权限、组织管理、单点登录、经营洞察"等 toB 词汇。避免消费级/游戏化措辞。
 
