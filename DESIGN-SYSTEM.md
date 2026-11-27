@@ -2,7 +2,7 @@
 
 > **适用范围**：Cyanos 平台所有现有页面与后续增量开发。
 > **文档地位**：本文件是视觉层的**唯一事实来源（Single Source of Truth）**。任何颜色、渐变、发光、布局、组件用法的改动，都应先更新本文，再改代码；反之亦然。
-> **最后更新**：2026-11-24
+> **最后更新**：2026-11-27
 
 ---
 
@@ -228,25 +228,30 @@
 - **表格必须用 `variant="secondary"` 平铺变体，圆角只由外层卡片提供一层**：HeroUI `<Table>` 默认 `variant="primary"` 是"灰色大圆角容器（`table-root` 自带 `border-radius: min(32px,…)` + `bg-surface-secondary` + `px-1 pb-1`）+ 内嵌白色圆角表格卡片（`table__body` 首末行单元格 `border-radius: min(32px, --radius-2xl)`）"的嵌套结构，内嵌圆角卡片时会出现**表头直角 / 数据行白卡大圆角 / 外层卡片圆角**三层叠加，视觉上"内外圆角反了"。规范做法：所有表格显式写 `<Table variant="secondary">`（无灰底、无内边距、表体直角），外层卡片加 `overflow-hidden rounded-2xl` 统一裁切一层圆角；并在 `globals.css` 覆盖 `.neon-card .table-root--secondary :is(th.table__column:first-child, th.table__column:last-child) { 四个 border-*-radius: 0 }`，清掉 secondary 表头首末列残留的圆角。`.neon-card .table-root--primary { border-radius: 0 }` 仅作兜底，**不要**依赖它——它清不掉表体单元格的内嵌圆角。
 - 参考实现：`src/pages/users.tsx` 与 `src/pages/admin.tsx` 表格区（均为 `variant="secondary"`）+ `globals.css` 的 `.table-scroll` 与 `.table-root--secondary` 圆角覆盖。
 
-### 5.6 侧栏折叠 / 展开
+### 5.6 侧栏折叠 / 展开与二级导航
 
-桌面端侧栏支持收起为图标轨道，节省横向空间给内容画布：
+桌面端侧栏支持收起为图标轨道，节省横向空间给内容画布；导航支持二级，且**折叠过程中图标尺寸恒定**：
 
 - **状态**：`app-shell.tsx` 内 `collapsed` boolean，持久化到 `localStorage` 的 `cyanos-sidebar-collapsed`（`"1"` = 收缩）。刷新后保持用户选择。仅桌面端生效；移动端抽屉始终展开，不受此状态影响。
-- **宽度联动**：侧栏 `w-[236px]`（展开）/ `w-[68px]`（收缩），`aside` 加 `transition-[width] duration-300 ease-in-out` + `overflow-hidden`；主区 padding `lg:pl-[260px]` / `lg:pl-[80px]` 加 `transition-[padding] duration-300` 同步过渡。收缩态 rail 右缘与主区 padding 起点重合（12px 定位 + 68px 宽 = 80px），不再额外留缝。
+- **宽度联动**：侧栏 `w-[236px]`（展开）/ `w-[68px]`（收缩），`aside` 加 `transition-[width,border-color,box-shadow] duration-300 ease-in-out`；主区 padding `lg:pl-[260px]` / `lg:pl-[80px]` 加 `transition-[padding] duration-300` 同步过渡。收缩态 rail 右缘与主区 padding 起点重合（12px 定位 + 68px 宽 = 80px），不再额外留缝。**`aside` 不要加 `overflow-hidden`**：收缩态二级 flyout 必须能溢出到 rail 右侧；宽度动画期间不溢出由"收缩时文字不渲染"保证。
 - **收缩态呈现（icon rail，参考 Linear / Raycast / Vercel）**：Logo 用 `<Brand compact>` 只显示图标；分组标题替换为 `bg-separator` 细分隔线（`h-px w-6`）；文字全部隐藏。
-  - **图标必须是"方形 tile"，禁止裸图标**：每个导航项图标放进 `flex items-center justify-center rounded-xl` 的方形色块。收起态 `size-11`（44px），外层链接 `rounded-2xl p-1` + `justify-center`；`nav` 内边距收到 `px-1`，让 tile 几乎填满 rail（两侧约 4px），**禁止图标两侧留大片空白**。
-  - **tile 三态**（展开/收起通用，仅尺寸不同——展开态 `size-9`）：
+  - **图标必须是"方形 tile"，禁止裸图标**：每个导航项图标放进 `flex items-center justify-center rounded-xl` 的方形色块。**展开态与收缩态统一 `size-11`（44px），图标统一 `size-5`（20px）**——折叠只收窄容器、隐藏文字，图标本身不缩放、不位移，消除跳跃感（旧的"展开 36px / 收缩 44px"已废弃）。外层链接 `rounded-2xl p-1` + `justify-center`；`nav` 内边距收到 `px-1`，让 tile 几乎填满 rail（两侧约 4px）。
+  - **tile 三态**（展开/收起完全一致）：
     - 激活：`bg-brand-gradient text-white shadow-[0_6px_18px_-4px_var(--glow-purple)]`（品牌渐变实心 + 霓虹发光，"灯光按钮"感）
     - 默认：`bg-default/60 text-muted`（淡背景块，主题感知）
     - hover：`group-hover:bg-accent/12 group-hover:text-accent`
-  - 展开态额外保留文字与左侧 `-left-4` 发光竖条；收起态**不加竖条**（渐变 tile 本身已足够醒目）。
-- **折叠开关**：侧栏底部 `border-t` 分隔线上方，tile 尺寸与导航一致（展开 `size-9` / 收缩 `size-11`，均 `rounded-xl`，外层按钮 `p-1`），但**必须使用 `.sidebar-toggle-tile` 彩色渐变按钮**，不能用导航的默认灰 tile —— 图标用 `var(--accent)`，底色为紫绿半透明渐变 + 渐变描边，hover 转实心品牌渐变并叠加紫绿双光晕。展开时 tile + "收起导航"文字，收缩时仅 tile 居中（`PanelLeftClose` / `PanelLeftOpen`）。这样折叠开关既醒目又与整体霓虹语言一致。
+  - 展开态额外保留文字与左侧 `-left-4` 发光竖条；收起态**不加竖条**（渐变 tile 本身已足够醒目）。激活态用 `useLocation()` 手动计算，不用函数式 children。
+
+- **二级导航**：`NavItemDef` 支持 `children`。当前「管理」组下「平台配置」（`Settings2`）为父项，含「角色与权限」「数据字典」两个子项，默认展开。
+  - **展开态**：父项用 `<button>` 切换 `expanded`，`ChevronRight` 旋转 90°；子项以内联列表渲染——左侧 `border-l` 连接线 + 发光圆点 + 文字（不重复图标），用 `grid-rows-[0fr]→[1fr]` + `opacity` 过渡高度；收起时加 `pointer-events-none`，避免透明子项仍可点。任一子项激活时父 tile 高亮并显示发光竖条。
+  - **收缩态**：父项 tile 点击切换右侧 flyout（`absolute left-full ml-2 w-52`，玻璃卡片 + `.nav-flyout` 入场动画），列出子项；点击子项导航并关闭，鼠标离开关闭。Flyout 只做入场动画，不在 `:hover` 上做 transform。
+  - Mobile 抽屉始终用展开态呈现二级。
+- **折叠开关**：侧栏底部 `border-t` 分隔线上方，tile **同为 44px**（与导航完全一致，均 `rounded-xl`，外层按钮 `p-1`），且**必须使用 `.sidebar-toggle-tile` 彩色渐变按钮**，不能用导航的默认灰 tile —— 图标用 `var(--accent)`，底色为紫绿半透明渐变 + 渐变描边，hover 转实心品牌渐变并叠加紫绿双光晕。展开时 tile + "收起导航"文字，收缩时仅 tile 居中（`PanelLeftClose` / `PanelLeftOpen`，图标 20px）。
 - **侧栏容器（`.sidebar-rail`）hover**：hover 时描边转亮紫 + 柔和外发光，与搜索条/内容卡片同一套反馈；只改颜色与阴影，不改宽度/位置，避免与折叠动画或鼠标进出相互干扰产生抖动。导航项图标 tile 在 hover 时加 1px 紫色内描边。
 - **移动菜单按钮**：右上角/左上角触发抽屉的按钮用 `PanelLeft` 图标 + 方形玻璃按钮（`glass ... rounded-xl size-10`），**不用**汉堡 `Menu` 三条线，与方形 tile 语言统一。
 - **hover 提示（收缩态必需）**：每个图标/开关用 `<Tooltip>`，触发器**必须**用 `<Tooltip.Trigger>` 包裹（同 Dropdown 的坑——原生元素/NavLink 不会自动成为触发器）；`placement`、`showArrow` 写在 `<Tooltip.Content>` 上，`delay`/`closeDelay` 写在 `<Tooltip>` 根上。展开态用 `isDisabled` 关闭提示。
 - **重要**：`Tooltip.Trigger` 内的 NavLink **children 必须是普通元素**（如直接写 `<Icon/>` + `<span/>`），不能用函数式 children `{({isActive}) => ...}`——函数 children 会导致 Trigger clone 注入的事件/ref 关联失效，Tooltip 不显示。激活态改用 `useLocation()` 手动计算 `isActive`。
-- 参考实现：`src/components/app-shell.tsx`（`NavItem` + `SidebarContent` + `AppShell` 的 collapsed 状态）。
+- 参考实现：`src/components/app-shell.tsx`（`NavTile` + `SubNavList` + `NavItem` + `SidebarContent` + `AppShell` 的 collapsed 状态）；flyout 动画在 `globals.css` 的 `.nav-flyout`。
 
 ### 5.7 组织管理页面（`/organizations`）
 
@@ -297,6 +302,16 @@
 - **导航可见性**：侧栏「系统」组与头像菜单的"系统管理后台"入口均由 `user.isSuperAdmin` 动态渲染，普通账号不可见。
 
 ---
+
+### 5.10 子系统切换（顶部入口）
+
+平台支持多子系统并行，入口在浮动控件行左侧（菜单/Logo 之后、搜索胶囊之前），**不新增任何固定顶部栏**。
+
+- **注册表**：`app-shell.tsx` 的 `SUBSYSTEMS` 是唯一数据源，当前含 `Cyanos 工作台`（`/dashboard`）、`风险分级管控`（`/subsystems/risk`）、`智能巡检`（`/subsystems/inspection`）。每项含 `id / title / description / path / icon`；新增子系统只需在此注册并添加对应路由，不改入口 UI。
+- **入口按钮**：玻璃药丸 `glass rounded-full h-10`，内含 24px 品牌渐变图标 + 当前子系统标题（`lg` 以上显示）+ `ChevronDown`；点击打开全量弹窗。当前子系统由 `location.pathname` 派生，无需额外 state。窄屏只显示图标，避免挤压搜索胶囊。
+- **全量弹窗**：HeroUI `Modal`，`sm:max-w-3xl`，标题「切换子系统」；`sm:grid-cols-3` 网格展示全部子系统卡片（品牌渐变 tile + 标题 + 描述 + 当前 `Chip` + 右上角箭头），点击卡片 `navigate(path)` 并关闭。卡片复用 `.neon-card`，hover 只用边框 + 光晕，**无位移**。
+- **占位页**：`src/pages/subsystem.tsx` 是统一骨架（`PageHeader` + 大号 `neon-card` 空状态 + 「返回工作台」按钮）。当前两个子系统只有标题与描述，实际功能后续在各自路由内构建，不要在切换器里堆功能入口。
+- **反模式**：入口不要做成 fixed/sticky 顶部栏；子系统不要写死在弹窗 JSX 里；占位页不要留空白无反馈。
 
 ## 6. 排版规范
 
@@ -412,9 +427,10 @@
 | `src/lib/mock-data.ts` | 组织架构与字典演示数据（`initialOrganizations` / `initialDictGroups` / `initialDictEntries`） |
 | `src/components/social-icons.tsx` | 微信 / 钉钉 SVG 图标 |
 | `src/lib/use-theme.ts` | 主题切换：写 `data-theme` + `.dark` class + localStorage |
+| `src/pages/subsystem.tsx` | 子系统占位页统一骨架（风险分级管控 / 智能巡检） |
 | `src/pages/*.tsx` | 页面实现，只消费上述规范，不重复定义视觉 |
 
-路由：`/login`、`/register`、`/dashboard`、`/users`、`/organizations`、`/roles`、`/dictionaries`、`/profile`、`/admin`。`/settings` 已废弃，重定向到 `/profile`。个人中心上部为组织管理（列表/切换/创建/邀请），下部四个 Tab：个人资料 / 账户安全 / 通知设置 / 偏好设置。守卫：`WorkspaceGuard`（无工作空间→`/profile`）、`SuperAdminGuard`（非超管→`/dashboard`）。
+路由：`/login`、`/register`、`/dashboard`、`/users`、`/organizations`、`/roles`、`/dictionaries`、`/subsystems/risk`、`/subsystems/inspection`、`/profile`、`/admin`。`/settings` 已废弃，重定向到 `/profile`。个人中心上部为组织管理（列表/切换/创建/邀请），下部四个 Tab：个人资料 / 账户安全 / 通知设置 / 偏好设置。守卫：`WorkspaceGuard`（无工作空间→`/profile`）、`SuperAdminGuard`（非超管→`/dashboard`）。
 
 ---
 
@@ -428,7 +444,9 @@
 - [ ] 图标来自 `lucide-react`；品牌渠道图标复用 `social-icons.tsx`。
 - [ ] 标题栏用 `PageHeader`，统计卡用 `StatCard`，角色/状态标签用 `RoleChip` / `StatusChip`。
 - [ ] 有明确的响应式断点表现（`sm` / `lg` / `xl`）。
-- [ ] 组织管理页遵循 §5.7：五类组织有图标 + 标签，基本信息默认查看态，树操作可新增/改名/删除，不含"部门岗位"，面板高度绑定视口，且新增入口区分根级（公司/承包商）与下级（五类）。
+- [ ] 组织管理页遵循 §5.7：组织类型与顶部统计卡全部由 `ORG_TYPE` 字典驱动（含新增类别），基本信息默认查看态，树操作可新增/改名/删除，不含"部门岗位"，面板高度绑定视口。
+- [ ] 侧栏遵循 §5.6：展开/收缩 tile 统一 44px、图标 20px，二级菜单收缩时用 flyout 展示，hover 无 transform 位移。
+- [ ] 子系统切换遵循 §5.10：入口在浮动控件行，全量弹窗由 `SUBSYSTEMS` 注册表驱动，占位页有明确反馈。
 - [ ] 数据字典页遵循 §5.8：分类与多级字典项均可增删改，内置项不可删，字典项支持启停/排序，组织类别字典改动能实时反映到组织页。
 - [ ] **亮色与暗色主题都实测过**：暗色必须是深紫蓝底 + 更亮的紫绿霓虹，不是纯黑白线。
 - [ ] `npm run build` 通过，无未定义 CSS 变量、无未使用导入。
@@ -440,6 +458,9 @@
 | ❌ 禁止 | ✅ 正确 |
 |---------|---------|
 | sticky / fixed 顶部导航栏 | 浮动控件直接落在画布上 |
+| 展开/收缩改变 tile 或图标尺寸（跳跃感） | 统一 44px tile / 20px 图标，只收窄容器与隐藏文字 |
+| 收缩态二级菜单被 `overflow-hidden` 裁掉 / 透明子项仍可点击 | `aside` 不加 `overflow-hidden`；flyout 绝对定位溢出；收起态加 `pointer-events-none` |
+| 子系统入口做成 fixed 顶部栏 / 卡片写死在弹窗 JSX | 浮动控件行药丸入口 + `SUBSYSTEMS` 注册表 + Modal 网格 |
 | `#000` 纯黑背景、白色描边卡片 | `oklch(0.135 0.022 285)` 深紫蓝底 + 半透明玻璃卡 |
 | 硬编码 `#a855f7` / `#22c55e` | `--brand-purple` / `--brand-green-strong` |
 | 普通白底卡片 | `.neon-card` |

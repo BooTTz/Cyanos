@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Spinner } from "@heroui/react";
+import { ScanSearch, ShieldAlert } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import AdminPage from "@/pages/admin";
@@ -10,6 +11,7 @@ import OrganizationsPage from "@/pages/organizations";
 import ProfilePage from "@/pages/profile";
 import RegisterPage from "@/pages/register";
 import RolesPage from "@/pages/roles";
+import SubsystemPage from "@/pages/subsystem";
 import UsersPage from "@/pages/users";
 import { useAuth } from "@/provider";
 
@@ -68,6 +70,30 @@ function App() {
         <Route path="/organizations" element={<WorkspaceGuard><OrganizationsPage /></WorkspaceGuard>} />
         <Route path="/roles" element={<WorkspaceGuard><RolesPage /></WorkspaceGuard>} />
         <Route path="/dictionaries" element={<WorkspaceGuard><DictionariesPage /></WorkspaceGuard>} />
+        <Route
+          path="/subsystems/risk"
+          element={
+            <WorkspaceGuard>
+              <SubsystemPage
+                title="风险分级管控"
+                description="安全风险辨识、分级评价与管控措施管理"
+                icon={ShieldAlert}
+              />
+            </WorkspaceGuard>
+          }
+        />
+        <Route
+          path="/subsystems/inspection"
+          element={
+            <WorkspaceGuard>
+              <SubsystemPage
+                title="智能巡检"
+                description="巡检任务下达、执行记录与隐患闭环"
+                icon={ScanSearch}
+              />
+            </WorkspaceGuard>
+          }
+        />
         <Route path="/admin" element={<SuperAdminGuard><AdminPage /></SuperAdminGuard>} />
       </Route>
 

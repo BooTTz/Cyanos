@@ -293,6 +293,19 @@ body {
   box-shadow: inset 0 0 0 1px oklch(0.68 0.25 292 / 0.35), 0 4px 14px -6px var(--glow-purple);
 }
 
+/* 收缩态二级菜单浮层：从 rail 右侧轻微滑入。仅入场动画，
+   不在 :hover 上做 transform，避免鼠标在边缘反复进出产生抖动。 */
+.nav-flyout {
+  animation: nav-flyout-in 0.18s ease-out;
+}
+@keyframes nav-flyout-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-flyout { animation: none; }
+}
+
 /* ---------- Organization workspace: viewport-bound panels ----------
    参考 TDesign / 精品 SaaS 后台的双栏范式：
    - 高度由视口决定，树节点或详情字段增减都不会撑高页面；
