@@ -6,7 +6,7 @@ import { useAuth } from "@/provider";
 import { useRiskData, riskId } from "@/lib/risk-store";
 import { useHazardLevels, useRiskObjectTypes } from "@/lib/dict-store";
 import { hazardLevelLabels, type HazardLevel, type RiskObject } from "@/lib/risk-types";
-import { RiskEmpty, RiskQuickNav, RiskShell, StatCard } from "./risk-shared";
+import { RiskEmpty, RiskShell, StatCard } from "./risk-shared";
 import { Field, FieldGrid, SelectField, TextAreaField } from "./risk-fields";
 
 const blank = (tenantId: string): RiskObject => ({
@@ -79,7 +79,6 @@ export default function RiskObjectsPage() {
   return (
     <RiskShell title="风险分析对象" description="录入企业风险管控对象：设备、设施、场所、区域，并设定负责人、部门与危险源等级。"
       actions={<div className="mb-5 flex justify-end"><Button variant="primary" onPress={openCreate}><Plus className="size-4" /> 新增对象</Button></div>}>
-      <RiskQuickNav />
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="对象总数" value={db.objects.length} accent="purple" />
         <StatCard label="重大危险源" value={hazardCount} accent="red" />

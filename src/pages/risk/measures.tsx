@@ -6,7 +6,7 @@ import { useAuth } from "@/provider";
 import { useRiskData, riskId } from "@/lib/risk-store";
 import { useControlCategories, useControlCategoryIds, useDictLabels } from "@/lib/dict-store";
 import type { RiskMeasure } from "@/lib/risk-types";
-import { RiskEmpty, RiskQuickNav, RiskShell, StatCard } from "./risk-shared";
+import { RiskEmpty, RiskShell, StatCard } from "./risk-shared";
 import { Field, FieldGrid, SelectField, TextAreaField } from "./risk-fields";
 
 const blank = (tenantId: string, eventId: string): RiskMeasure => ({
@@ -74,7 +74,6 @@ export default function RiskMeasuresPage() {
   return (
     <RiskShell title="管控措施管理" description="为风险事件登记管控措施，按国标分类目录1/2与用户自定义分类3三级归档。"
       actions={<div className="mb-5 flex justify-end"><Button variant="primary" onPress={openCreate}><Plus className="size-4" /> 新增措施</Button></div>}>
-      <RiskQuickNav />
       <div className="mb-4 grid grid-cols-3 gap-3">
         <StatCard label="措施总数" value={db.measures.length} accent="purple" />
         <StatCard label="分类目录" value={cat1.length} hint="国标一级分类" accent="green" />

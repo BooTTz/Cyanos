@@ -6,7 +6,7 @@ import { Chip } from "@heroui/react";
 import { useAuth } from "@/provider";
 import { useRiskData } from "@/lib/risk-store";
 import { hazardLevelLabels, riskLevelLabels } from "@/lib/risk-types";
-import { RiskEmpty, RiskQuickNav, RiskShell, StatCard } from "./risk-shared";
+import { RiskEmpty, RiskShell, StatCard } from "./risk-shared";
 
 /** 总览：把 对象 → 单元 → 事件 → 措施 以树状层级整合展示 */
 export default function RiskOverviewPage() {
@@ -22,8 +22,6 @@ export default function RiskOverviewPage() {
 
   return (
     <RiskShell title="风险分级管控总览" description="按「分析对象 → 分析单元 → 风险事件 → 管控措施」四级整合展示，快速掌握风险全貌。">
-      <RiskQuickNav />
-
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="风险分析对象" value={stats.objects} hint={`重大危险源 ${stats.hazard} 个`} accent="purple" />
         <StatCard label="风险分析单元" value={stats.units} hint="隐患排查最小单元" accent="blue" />
@@ -137,7 +135,7 @@ export default function RiskOverviewPage() {
       <div className="bg-accent/5 border-accent/15 mt-5 flex items-center gap-3 rounded-xl border p-4">
         <ShieldCheck className="text-accent size-5 shrink-0" />
         <p className="text-muted text-sm">
-          数据按当前组织隔离保存。点击上方模块导航进入各功能页进行增删改查，字典项在「数据字典」中统一维护。
+          数据按当前组织隔离保存。点击左侧「风险分级管控」下的功能页进行增删改查，字典项在「数据字典」中统一维护。
         </p>
       </div>
     </RiskShell>

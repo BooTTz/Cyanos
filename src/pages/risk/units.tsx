@@ -7,7 +7,7 @@ import { useAuth } from "@/provider";
 import { useRiskData, riskId } from "@/lib/risk-store";
 import { useInspectionMethods } from "@/lib/dict-store";
 import { inspectionMethodLabels, type InspectionMethod, type RiskUnit } from "@/lib/risk-types";
-import { RiskEmpty, RiskQuickNav, RiskShell, StatCard } from "./risk-shared";
+import { RiskEmpty, RiskShell, StatCard } from "./risk-shared";
 import { Field, FieldGrid, SelectField, TextAreaField } from "./risk-fields";
 
 const blank = (tenantId: string, objectId: string): RiskUnit => ({
@@ -127,7 +127,6 @@ export default function RiskUnitsPage() {
   return (
     <RiskShell title="风险分析单元" description="将分析对象拆解为隐患排查单元，配置二维码 / NFC / 人员定位排查方式。"
       actions={<div className="mb-5 flex justify-end"><Button variant="primary" onPress={openCreate}><Plus className="size-4" /> 新增单元</Button></div>}>
-      <RiskQuickNav />
       <div className="mb-4 grid grid-cols-3 gap-3">
         <StatCard label="单元总数" value={db.units.length} accent="purple" />
         <StatCard label="二维码标签" value={db.units.filter((u) => u.method === "qrcode").length} accent="green" />

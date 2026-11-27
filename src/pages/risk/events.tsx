@@ -9,7 +9,7 @@ import {
   evalParams, evaluateRisk, evalMethodLabels, riskLevelLabels,
   type EvalMethod, type RiskEvent, type RiskEvaluation, type RiskLevel,
 } from "@/lib/risk-types";
-import { RiskEmpty, RiskLevelBadge, RiskQuickNav, RiskShell, StatCard } from "./risk-shared";
+import { RiskEmpty, RiskLevelBadge, RiskShell, StatCard } from "./risk-shared";
 import { Field, FieldGrid, SelectField, TextAreaField } from "./risk-fields";
 
 const blank = (tenantId: string, unitId: string): RiskEvent => ({
@@ -143,7 +143,6 @@ export default function RiskEventsPage() {
   return (
     <RiskShell title="风险事件管理" description="针对每个单元分析可能产生的风险，采用 LS / LEC / MES 或直接判定法评价等级，并保留历史评价记录。"
       actions={<div className="mb-5 flex justify-end"><Button variant="primary" onPress={openCreate}><Plus className="size-4" /> 新增风险事件</Button></div>}>
-      <RiskQuickNav />
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="风险事件总数" value={db.events.length} accent="purple" />
         <StatCard label="重大风险（红）" value={levelCounts.red} accent="red" />

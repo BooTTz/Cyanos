@@ -28,6 +28,7 @@ import { Brand } from "@/components/brand";
 import { useAuth } from "@/provider";
 import { roleLabels } from "@/lib/types";
 import { useThemeMode } from "@/lib/use-theme";
+import { RISK_NAV } from "@/pages/risk/risk-shared";
 
 const COLLAPSE_KEY = "cyanos-sidebar-collapsed";
 
@@ -303,12 +304,23 @@ export function AppShell() {
   // 超管后台是平台级全宽视图，不套个人中心的居中宽度限制，宽屏下表头与统计条铺满
   const isAdmin = location.pathname.startsWith("/admin");
 
+  const inRiskSubsystem = location.pathname.startsWith("/subsystems/risk");
   const navGroups = useMemo<NavGroupDef[]>(
     () => [
-      {
-        label: "工作台",
-        items: [{ to: "/dashboard", label: "概览", icon: LayoutDashboard }],
-      },
+      // 顶部切换进入子系统后，首组即该子系统的功能组；一级标签只做分栏，二级才是真实功能页。
+      inRiskSubsystem
+        ? {
+            label: "风险分级管控",
+            items: RISK_NAV.map((item) => ({
+              to: item.to,
+              label: item.label,
+              icon: item.icon,
+            })),
+          }
+        : {
+            label: "工作台",
+            items: [{ to: "/dashboard", label: "概览", icon: LayoutDashboard }],
+          },
       {
         label: "管理",
         items: [
@@ -327,7 +339,7 @@ export function AppShell() {
           ]
         : []),
     ],
-    [user?.isSuperAdmin],
+    [inRiskSubsystem, user?.isSuperAdmin],
   );
 
   const activeSubsystem =

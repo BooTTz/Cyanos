@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   Building2,
   ClipboardList,
   LayoutGrid,
@@ -13,7 +11,7 @@ import { PageHeader } from "@/components/ui";
 import type { RiskLevel } from "@/lib/risk-types";
 import { riskLevelLabels, riskLevelShort } from "@/lib/risk-types";
 
-/** 风险模块内部导航：五个功能页 */
+/** 风险子系统功能页注册：侧栏一级「风险分级管控」下的唯一数据源 */
 export const RISK_NAV = [
   { to: "/subsystems/risk", label: "总览", icon: LayoutGrid, end: true },
   { to: "/subsystems/risk/objects", label: "风险分析对象", icon: Building2 },
@@ -82,29 +80,6 @@ export function StatCard({
       <p className="text-muted text-xs font-medium">{label}</p>
       <p className={`mt-2 text-3xl font-semibold ${accents[accent]}`}>{value}</p>
       {hint && <p className="text-muted mt-1 text-[11px]">{hint}</p>}
-    </div>
-  );
-}
-
-/** 模块内快捷入口条 */
-export function RiskQuickNav() {
-  return (
-    <div className="neon-card mb-5 flex flex-wrap items-center gap-2 rounded-2xl p-3">
-      <span className="text-muted mr-1 text-xs font-medium">模块导航</span>
-      {RISK_NAV.filter((item) => item.to !== "/subsystems/risk").map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            className="border-separator text-muted hover:border-accent/50 hover:text-accent inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors"
-          >
-            <Icon className="size-3.5" />
-            {item.label}
-            <ArrowRight className="size-3" />
-          </Link>
-        );
-      })}
     </div>
   );
 }
