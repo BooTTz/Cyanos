@@ -9,7 +9,7 @@ export interface DictState {
 }
 
 // 版本化 key：更换内置字典数据后提升版本号，避免旧 localStorage 快照覆盖新默认数据
-const STORAGE_KEY = "cyanos-dictionaries-v2";
+const STORAGE_KEY = "cyanos-dictionaries-v3";
 const CHANGE_EVENT = "cyanos:dictionaries-changed";
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -215,5 +215,56 @@ export function useOrgTypeLabels(): Record<string, string> {
         });
     }
     return labels;
+  }, [groups, entries]);
+}
+
+/* ---------- 风险分级管控字典：全部派生自统一的字典体系 ---------- */
+
+export type DictOption = { value: string; label: string };
+
+/** 通用：按字典 code 取启用项，按 sort 排序为下拉选项 */
+export function useDictOptions(groupCode: string, parentId: string | null = null): DictOption[] {
+  const { groups, entries } = useDictionaries();
+  return useMemo(() => {
+    const group = groups.find((g) => g.code === groupCode && g.status === "enabled");
+    if (!group) return [];
+    return entries
+      .filter((e) => e.groupId === group.id && e.status === "enabled" && e.parentId === parentId)
+      .sort((a, b) => a.sort - b.sort)
+      .map((e) => ({ value: e.code, label: e.name }));
+  }, [groups, entries, groupCode, parentId]);
+}
+
+/** 管控措施三级分类：给 code 返回名称（含未启用项，保证历史数据显示） */
+export function useDictLabels(groupCode: string): Record<string, string> {
+  const { groups, entries } = useDictionaries();
+  return useMemo(() => {
+    const group = groups.find((g) => g.code === groupCode);
+    if (!group) return {};
+    const labels: Record<string, string> = {};
+    entries.filter((e) => e.groupId === group.id).forEach((e) => (labels[e.code] = e.name));
+    return labels;
+  }, [groups, entries, groupCode]);
+}
+
+/** 风险模块常用字典的语义化 hooks */
+export const useRiskObjectTypes = () => useDictOptions("RISK_OBJECT_TYPE");
+export const useHazardLevels = () => useDictOptions("HAZARD_LEVEL");
+export const useInspectionMethods = () => useDictOptions("INSPECTION_METHOD");
+export const useEvalMethods = () => useDictOptions("EVAL_METHOD");
+export const useRiskLevels = () => useDictOptions("RISK_LEVEL");
+export const useAccidentTypes = () => useDictOptions("ACCIDENT_TYPE");
+/** 管控分类 1/2/3 联动：parentId 传上一级 code */
+export const useControlCategories = (parentCode: string | null = null) =>
+  useDictOptions("CONTROL_CATEGORY", parentCode);
+/** 管控分类字典项的真实 id（parentId 用 id，而表单选项 value 用 code，需转换） */
+export function useControlCategoryIds() {
+  const { groups, entries } = useDictionaries();
+  return useMemo(() => {
+    const group = groups.find((g) => g.code === "CONTROL_CATEGORY");
+    if (!group) return {} as Record<string, string>;
+    const ids: Record<string, string> = {};
+    entries.filter((e) => e.groupId === group.id).forEach((e) => (ids[e.code] = e.id));
+    return ids;
   }, [groups, entries]);
 }

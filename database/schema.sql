@@ -104,3 +104,16 @@ alter table workspaces
 
 create index if not exists idx_workspaces_deletion_expiry on workspaces(deletion_expires_at);
 create index if not exists idx_accounts_deletion_expiry on accounts(deletion_expires_at);
+
+-- ============================================================
+-- 双重预防机制 · 风险分级管控数据（2026-11-27）
+-- 采用单租户单 JSON 快照存储：风险数据写少读多、层级深（对象→单元→事件→措施/评价），
+-- 整包读写简单可靠，避免多表事务复杂度；后续如需细粒度查询可再拆表。
+-- 字典项（对象类型、危险源等级、排查方式、评价方法、风险等级、分类目录）沿用平台字典体系。
+-- ============================================================
+create table if not exists risk_data (
+  workspace_id text primary key references workspaces(id) on delete cascade,
+  data jsonb not null default '{"objects":[],"units":[],"events":[],"evaluations":[],"measures":[]}'::jsonb,
+  updated_at timestamptz default now()
+);
+

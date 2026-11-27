@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Spinner } from "@heroui/react";
-import { ScanSearch, ShieldAlert } from "lucide-react";
+import { ScanSearch } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import AdminPage from "@/pages/admin";
@@ -13,6 +13,11 @@ import RegisterPage from "@/pages/register";
 import RolesPage from "@/pages/roles";
 import SubsystemPage from "@/pages/subsystem";
 import UsersPage from "@/pages/users";
+import RiskOverviewPage from "@/pages/risk/overview";
+import RiskObjectsPage from "@/pages/risk/objects";
+import RiskUnitsPage from "@/pages/risk/units";
+import RiskEventsPage from "@/pages/risk/events";
+import RiskMeasuresPage from "@/pages/risk/measures";
 import { useAuth } from "@/provider";
 
 function LoadingScreen() {
@@ -72,15 +77,23 @@ function App() {
         <Route path="/dictionaries" element={<WorkspaceGuard><DictionariesPage /></WorkspaceGuard>} />
         <Route
           path="/subsystems/risk"
-          element={
-            <WorkspaceGuard>
-              <SubsystemPage
-                title="风险分级管控"
-                description="安全风险辨识、分级评价与管控措施管理"
-                icon={ShieldAlert}
-              />
-            </WorkspaceGuard>
-          }
+          element={<WorkspaceGuard><RiskOverviewPage /></WorkspaceGuard>}
+        />
+        <Route
+          path="/subsystems/risk/objects"
+          element={<WorkspaceGuard><RiskObjectsPage /></WorkspaceGuard>}
+        />
+        <Route
+          path="/subsystems/risk/units"
+          element={<WorkspaceGuard><RiskUnitsPage /></WorkspaceGuard>}
+        />
+        <Route
+          path="/subsystems/risk/events"
+          element={<WorkspaceGuard><RiskEventsPage /></WorkspaceGuard>}
+        />
+        <Route
+          path="/subsystems/risk/measures"
+          element={<WorkspaceGuard><RiskMeasuresPage /></WorkspaceGuard>}
         />
         <Route
           path="/subsystems/inspection"

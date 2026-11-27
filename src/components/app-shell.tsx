@@ -5,7 +5,6 @@ import {
   Bell,
   Building2,
   ChevronDown,
-  ChevronRight,
   CircleHelp,
   LayoutDashboard,
   ListTree,
@@ -16,7 +15,6 @@ import {
   PanelLeftOpen,
   ScanSearch,
   Search,
-  Settings2,
   ShieldAlert,
   ShieldCheck,
   Sun,
@@ -33,11 +31,20 @@ import { useThemeMode } from "@/lib/use-theme";
 
 const COLLAPSE_KEY = "cyanos-sidebar-collapsed";
 
+/** 二级功能页：真实可路由的页面，不再承载子层级 */
 type NavItemDef = {
-  to?: string;
+  to: string;
   label: string;
   icon: typeof LayoutDashboard;
-  children?: NavItemDef[];
+};
+
+/**
+ * 一级导航「抽屉标签」：无图标，只有文字 + 横分割线的弱样式，
+ * 仅作为分栏边界与 hover 热区；真正的主角是二级功能页。
+ */
+type NavGroupDef = {
+  label: string;
+  items: NavItemDef[];
 };
 
 /** 子系统注册表：目前只有标题与描述，实际功能后续按同一入口接入 */
@@ -84,42 +91,44 @@ function NavTile({ active, icon: Icon }: { active: boolean; icon: typeof LayoutD
   );
 }
 
-/** 二级子项：连接线 + 发光圆点 + 文字，不使用重复图标，保持层级清爽 */
-function SubNavList({
+/** 二级功能页列表：图标 tile + 文字，是导航的视觉主体（展开/收缩同构） */
+function NavItemList({
   children: items,
   activePath,
+  collapsed,
   onNavigate,
-  compact = false,
 }: {
   children: NavItemDef[];
   activePath: string;
+  collapsed: boolean;
   onNavigate?: () => void;
-  compact?: boolean;
 }) {
   return (
-    <ul className={compact ? "space-y-0.5" : "border-separator/70 ml-[21px] space-y-0.5 border-l py-1 pl-3"}>
-      {items.map((child) => {
-        const childActive = activePath === child.to;
+    <ul className="space-y-1.5">
+      {items.map((item) => {
+        const active = activePath === item.to;
         return (
-          <li key={child.to}>
+          <li key={item.to}>
             <NavLink
               end
-              to={child.to ?? "/dashboard"}
+              to={item.to}
               onClick={onNavigate}
-              className={[
-                "group/sub flex items-center gap-2.5 rounded-lg transition-colors duration-200",
-                compact ? "px-2.5 py-2" : "px-2.5 py-1.5",
-                childActive ? "bg-accent/10 text-accent" : "text-muted hover:bg-default/50 hover:text-foreground",
-              ].join(" ")}
+              aria-label={collapsed ? item.label : undefined}
+              className="nav-item group relative flex items-center gap-3 rounded-xl p-1 transition-colors duration-200"
             >
-              <span
-                className={`size-1.5 shrink-0 rounded-full ${
-                  childActive ? "bg-accent shadow-[0_0_8px_var(--glow-purple)]" : "bg-muted/60"
-                }`}
-              />
-              <span className={compact ? "whitespace-nowrap text-sm" : "whitespace-nowrap text-[13px]"}>
-                {child.label}
-              </span>
+              <NavTile active={active} icon={item.icon} />
+              {!collapsed && (
+                <span
+                  className={`whitespace-nowrap text-sm font-medium ${
+                    active ? "text-accent" : "text-muted group-hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              )}
+              {active && !collapsed && (
+                <span className="bg-accent absolute -left-4 h-6 w-1 rounded-r-full shadow-[0_0_12px_var(--glow-purple)]" />
+              )}
             </NavLink>
           </li>
         );
@@ -128,136 +137,72 @@ function SubNavList({
   );
 }
 
-function NavItem({
-  item,
+/**
+ * 一级「抽屉标签」+ 二级功能列表：
+ * - 一级只有文字 + 横分割线的弱样式，作为分栏与 hover 热区；
+ * - 二级用图标 tile 作为视觉主体；
+ * - hover/展开状态由 SidebarContent 统一裁决：同一时刻只展开一个分组，
+ *   鼠标移到哪个分组，哪个分组展开、其余收起；鼠标离开后回到当前路由所在分组。
+ * - 内容区用 grid-template-rows 0fr↔1fr 做上下滑动，位置平滑不跳动。
+ */
+function NavGroup({
+  group,
+  expanded,
+  active,
   collapsed,
+  onHoverChange,
   onNavigate,
 }: {
-  item: NavItemDef;
+  group: NavGroupDef;
+  expanded: boolean;
+  active: boolean;
   collapsed: boolean;
+  onHoverChange: (hovering: boolean) => void;
   onNavigate?: () => void;
 }) {
   const location = useLocation();
-  const [expanded, setExpanded] = useState(true);
-  const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const hasChildren = !!item.children?.length;
-  const childActive = hasChildren && !!item.children!.some((child) => location.pathname === child.to);
-  const isActive = !hasChildren && location.pathname === item.to;
-
-  /* ---------- 收缩态：tile 靠左居中，父项用右侧浮层承载二级 ---------- */
-  if (collapsed) {
-    const control = hasChildren ? (
-      <button
-        aria-label={`展开 ${item.label} 子菜单`}
-        onClick={() => setFlyoutOpen((prev) => !prev)}
-        className="group flex cursor-pointer justify-center rounded-2xl p-1"
-      >
-        <NavTile active={childActive} icon={item.icon} />
-      </button>
-    ) : (
-      <NavLink
-        end
-        to={item.to ?? "/dashboard"}
-        onClick={onNavigate}
-        aria-label={item.label}
-        className="group flex justify-center rounded-2xl p-1"
-      >
-        <NavTile active={isActive} icon={item.icon} />
-      </NavLink>
-    );
-
-    return (
-      <div className="relative">
-        <Tooltip delay={100} closeDelay={0}>
-          <Tooltip.Trigger>{control}</Tooltip.Trigger>
-          <Tooltip.Content placement="right" showArrow>
-            <p className="text-sm font-medium">{item.label}</p>
-          </Tooltip.Content>
-        </Tooltip>
-        {hasChildren && flyoutOpen && (
-          <div
-            className="nav-flyout border-separator/70 bg-surface/95 absolute top-0 left-full z-40 ml-2 w-52 rounded-2xl border p-2 shadow-2xl backdrop-blur-xl"
-            onMouseLeave={() => setFlyoutOpen(false)}
-          >
-            <p className="text-muted mb-2 px-2.5 text-[11px] font-semibold tracking-[0.16em] uppercase">
-              {item.label}
-            </p>
-            <SubNavList
-              activePath={location.pathname}
-              onNavigate={() => {
-                onNavigate?.();
-                setFlyoutOpen(false);
-              }}
-              compact
-            >
-              {item.children!}
-            </SubNavList>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  /* ---------- 展开态：父项内联二级，带高度过渡 ---------- */
-  if (hasChildren) {
-    return (
-      <div className="group relative">
-        <button
-          onClick={() => setExpanded((prev) => !prev)}
-          className="hover:bg-default/50 flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-1.5 transition-colors duration-200"
-        >
-          <NavTile active={childActive} icon={item.icon} />
-          <span
-            className={`flex-1 text-left whitespace-nowrap text-sm font-medium ${
-              childActive ? "text-accent" : "text-muted group-hover:text-foreground"
-            }`}
-          >
-            {item.label}
-          </span>
-          <ChevronRight
-            className={`text-muted size-4 shrink-0 transition-transform duration-300 ${expanded ? "rotate-90" : ""}`}
-          />
-        </button>
-        {childActive && (
-          <span className="bg-accent absolute -left-4 top-3 h-6 w-1 rounded-r-full shadow-[0_0_12px_var(--glow-purple)]" />
-        )}
-        <div
-          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-            expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <SubNavList activePath={location.pathname} onNavigate={onNavigate}>
-              {item.children!}
-            </SubNavList>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <NavLink
-      end
-      to={item.to ?? "/dashboard"}
-      onClick={onNavigate}
-      className={[
-        "group relative flex items-center gap-3 rounded-xl px-2.5 py-1.5 transition-colors duration-200",
-        isActive ? "bg-accent/10" : "hover:bg-default/50",
-      ].join(" ")}
-    >
-      <NavTile active={isActive} icon={item.icon} />
-      <span
-        className={`whitespace-nowrap text-sm font-medium ${
-          isActive ? "text-accent" : "text-muted group-hover:text-foreground"
+    <div onMouseEnter={() => onHoverChange(true)} onMouseLeave={() => onHoverChange(false)}>
+      {/* 一级标签：文字在上、完整细线在下的分栏标题；弱化为主次的「分栏」 */}
+      <div className={`pb-1 ${collapsed ? "px-0" : "px-2.5"}`}>
+        <div className={`flex items-center gap-1.5 ${collapsed ? "justify-center" : ""}`}>
+          <span
+            className={`whitespace-nowrap font-medium tracking-[0.08em] ${
+              collapsed ? "text-[10px]" : "text-[13px]"
+            } ${active ? "text-accent" : "text-muted"}`}
+          >
+            {group.label}
+          </span>
+          {/* 当前选中项在本组、但本组暂时收起时的定位标记 */}
+          {active && !expanded && (
+            <span className="bg-accent dot-neon size-1.5 shrink-0 rounded-full" />
+          )}
+        </div>
+        <span
+          className={`mt-1.5 block h-px w-full ${
+            active && !expanded ? "bg-accent/35" : "bg-separator"
+          }`}
+        />
+      </div>
+
+      {/* 二级功能列表：上下滑动的抽屉 */}
+      <div
+        className={`nav-drawer ${
+          expanded ? "nav-drawer--open" : "pointer-events-none"
         }`}
       >
-        {item.label}
-      </span>
-      {isActive && (
-        <span className="bg-accent absolute -left-4 h-6 w-1 rounded-r-full shadow-[0_0_12px_var(--glow-purple)]" />
-      )}
-    </NavLink>
+        <div className="nav-drawer__inner">
+          <NavItemList
+            activePath={location.pathname}
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+          >
+            {group.items}
+          </NavItemList>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -270,10 +215,19 @@ function SidebarContent({
   onNavigate?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
-  groups: Array<{ label: string; items: NavItemDef[] }>;
+  groups: NavGroupDef[];
 }) {
+  const location = useLocation();
+  // 鼠标当前所在的分组；同一时刻只有一个分组展开。
+  // 未 hover 时回落到当前路由所在分组，保证"选中概览 → 默认展开工作台"。
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  const activeGroup =
+    groups.find((g) => g.items.some((item) => item.to === location.pathname)) ?? groups[0];
+  const expandedGroup = hoveredGroup ?? activeGroup?.label;
+
   const collapseButton: ReactNode = onToggleCollapse && (
-    <div className={`mt-auto border-t border-[var(--separator)] py-3 ${collapsed ? "px-1" : "px-4"}`}>
+    // 收缩态不再画 border-t：那条孤立短横线看起来像多余的"条"，让开关自然融入底部
+    <div className={`mt-auto py-3 ${collapsed ? "px-1" : "border-t border-[var(--separator)] px-4"}`}>
       <Tooltip delay={100} closeDelay={0} isDisabled={!collapsed}>
         <Tooltip.Trigger>
           <button
@@ -310,28 +264,18 @@ function SidebarContent({
         </NavLink>
       </div>
 
-      <nav
-        className={`flex-1 overflow-y-auto py-4 ${collapsed ? "px-1" : "px-4"} ${
-          collapsed ? "space-y-4" : "space-y-6"
-        }`}
-      >
+      {/* 互斥抽屉：同一时刻只有一个一级分组展开，二级用 grid-rows 平滑滑动 */}
+      <nav className={`table-scroll min-h-0 flex-1 overflow-y-auto py-4 ${collapsed ? "space-y-2 px-1" : "space-y-2 px-4"}`}>
         {groups.map((group) => (
-          <div key={group.label}>
-            {collapsed ? (
-              <div className="bg-separator mx-auto mb-3 h-px w-6" />
-            ) : (
-              <p className="text-muted mb-2.5 px-3 text-[11px] font-semibold tracking-[0.16em] uppercase">
-                {group.label}
-              </p>
-            )}
-            <ul className="space-y-1.5">
-              {group.items.map((item) => (
-                <li key={item.to ?? item.label}>
-                  <NavItem item={item} collapsed={collapsed} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-          </div>
+          <NavGroup
+            key={group.label}
+            group={group}
+            collapsed={collapsed}
+            active={activeGroup?.label === group.label}
+            expanded={expandedGroup === group.label}
+            onHoverChange={(hovering) => setHoveredGroup(hovering ? group.label : null)}
+            onNavigate={onNavigate}
+          />
         ))}
       </nav>
 
@@ -359,7 +303,7 @@ export function AppShell() {
   // 超管后台是平台级全宽视图，不套个人中心的居中宽度限制，宽屏下表头与统计条铺满
   const isAdmin = location.pathname.startsWith("/admin");
 
-  const navGroups = useMemo(
+  const navGroups = useMemo<NavGroupDef[]>(
     () => [
       {
         label: "工作台",
@@ -370,18 +314,17 @@ export function AppShell() {
         items: [
           { to: "/organizations", label: "组织管理", icon: Building2 },
           { to: "/users", label: "用户管理", icon: UsersRound },
-          {
-            label: "平台配置",
-            icon: Settings2,
-            children: [
-              { to: "/roles", label: "角色与权限", icon: ShieldCheck },
-              { to: "/dictionaries", label: "数据字典", icon: ListTree },
-            ],
-          },
+          { to: "/roles", label: "角色与权限", icon: ShieldCheck },
+          { to: "/dictionaries", label: "数据字典", icon: ListTree },
         ],
       },
       ...(user?.isSuperAdmin
-        ? [{ label: "系统", items: [{ to: "/admin", label: "系统管理后台", icon: ShieldAlert }] }]
+        ? [
+            {
+              label: "系统",
+              items: [{ to: "/admin", label: "系统管理后台", icon: ShieldAlert }],
+            },
+          ]
         : []),
     ],
     [user?.isSuperAdmin],
