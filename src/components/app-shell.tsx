@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -222,6 +222,36 @@ function SidebarContent({
   // 鼠标当前所在的分组；同一时刻只有一个分组展开。
   // 未 hover 时回落到当前路由所在分组，保证"选中概览 → 默认展开工作台"。
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  // 切换锁定：抽屉高度变化会把相邻分组推到鼠标下方，若立即响应新的 mouseenter/leave
+  // 会形成"展开→布局位移→误触发另一组→回弹"的连锁抖动。切换后短时间内忽略新 hover。
+  const hoverLockUntil = useRef(0);
+  const clearHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (clearHoverTimer.current) clearTimeout(clearHoverTimer.current);
+    },
+    [],
+  );
+
+  const handleHoverChange = (label: string | null) => {
+    if (label) {
+      if (clearHoverTimer.current) {
+        clearTimeout(clearHoverTimer.current);
+        clearHoverTimer.current = null;
+      }
+      if (Date.now() < hoverLockUntil.current) return;
+      setHoveredGroup((prev) => (prev === label ? prev : label));
+      hoverLockUntil.current = Date.now() + 280;
+      return;
+    }
+    // 离开分组不立即回落：给鼠标在组间移动/动画收尾留出缓冲，避免闪回。
+    if (clearHoverTimer.current) clearTimeout(clearHoverTimer.current);
+    clearHoverTimer.current = setTimeout(() => {
+      setHoveredGroup(null);
+      clearHoverTimer.current = null;
+    }, 180);
+  };
+
   const activeGroup =
     groups.find((g) => g.items.some((item) => item.to === location.pathname)) ?? groups[0];
   const expandedGroup = hoveredGroup ?? activeGroup?.label;
@@ -274,7 +304,7 @@ function SidebarContent({
             collapsed={collapsed}
             active={activeGroup?.label === group.label}
             expanded={expandedGroup === group.label}
-            onHoverChange={(hovering) => setHoveredGroup(hovering ? group.label : null)}
+            onHoverChange={(hovering) => handleHoverChange(hovering ? group.label : null)}
             onNavigate={onNavigate}
           />
         ))}
@@ -305,22 +335,26 @@ export function AppShell() {
   const isAdmin = location.pathname.startsWith("/admin");
 
   const inRiskSubsystem = location.pathname.startsWith("/subsystems/risk");
-  const navGroups = useMemo<NavGroupDef[]>(
-    () => [
-      // 顶部切换进入子系统后，首组即该子系统的功能组；一级标签只做分栏，二级才是真实功能页。
-      inRiskSubsystem
-        ? {
-            label: "风险分级管控",
-            items: RISK_NAV.map((item) => ({
-              to: item.to,
-              label: item.label,
-              icon: item.icon,
-            })),
-          }
-        : {
-            label: "工作台",
-            items: [{ to: "/dashboard", label: "概览", icon: LayoutDashboard }],
-          },
+  const navGroups = useMemo<NavGroupDef[]>(() => {
+    // 子系统是独立工作上下文：进入风险模块后侧栏只保留该子系统自己的功能组，
+    // 不混入工作台/管理/系统，切回工作台后才恢复完整分组。
+    if (inRiskSubsystem) {
+      return [
+        {
+          label: "风险分级管控",
+          items: RISK_NAV.map((item) => ({
+            to: item.to,
+            label: item.label,
+            icon: item.icon,
+          })),
+        },
+      ];
+    }
+    return [
+      {
+        label: "工作台",
+        items: [{ to: "/dashboard", label: "概览", icon: LayoutDashboard }],
+      },
       {
         label: "管理",
         items: [
@@ -338,9 +372,8 @@ export function AppShell() {
             },
           ]
         : []),
-    ],
-    [inRiskSubsystem, user?.isSuperAdmin],
-  );
+    ];
+  }, [inRiskSubsystem, user?.isSuperAdmin]);
 
   const activeSubsystem =
     SUBSYSTEMS.find((s) => s.id !== "workspace" && location.pathname.startsWith(s.path)) ?? SUBSYSTEMS[0];
